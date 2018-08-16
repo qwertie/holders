@@ -19,7 +19,10 @@ If `teaTime` is a `Holder<Date>` object, `teaTime.get` returns the current value
 Features
 --------
 
-- Targets ES5 (old browsers supported)
+- UMD modules targeting ES5 (old browsers supported)
+- Two parts: 'hold' is React-independent; '4react' provides React components that wrap standard elements like `<label>`, `<input type="text">`, `<input type="checkbox">` and so on.
+- Minified size: 0.9K for hold.min.js, 4.7K for 4react.min.js
+- Includes a demo (demo.html)
 
 To Learn More
 -------------
