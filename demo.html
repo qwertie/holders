@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Holders Demo</title>
+  <meta charset="utf-8"/>
+  <style>
+    body    { font-family: "Helvetica", sans-serif; }
+    a       { text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    input[type=range] {
+      height:1em;
+      margin: 0 0.5em 0 0.5em;
+    }
+
+    form, fieldset {
+      max-width: 500px;
+    }
+    form p, fieldset p {
+      margin: 8px 0 10px 0;
+    }
+    .labelspan {
+      display: inline-block;
+      width: calc(5em + 10%);
+    };
+  </style>
+</head>
+<body>
+  <h1>Simple Form</h1>
+  <p>This demo uses <a href='https://parceljs.org/'>parcel</a>. 
+     Use <tt>npm install --global parcel-bundler</tt>, then run this 
+     terminal command to start the server: <tt>parcel demo.html</tt></p>
+  <div id="app"></div>
+  <script src="demo.tsx"></script>
+  <script>
+    if (document.querySelector("body > script").src.slice(-4) !== '.tsx')
+      document.querySelector("body > p").style.display = 'none';
+  </script>
+</body>
+</html>

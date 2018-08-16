@@ -1,0 +1,42 @@
+{
+  "name": "holders",
+  "version": "1.0.0",
+  "description": "A tiny library to help you construct React user interfaces quickly & easily",
+  "main": "4react",
+  "typings": "4react",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc && minify",
+    "minify": "uglifyjs -cm -o hold.min.js hold.js && uglifyjs -cm -o 4react.min.js 4react.js",
+
+    "demo": "parcel demo.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qwertie/holders.git"
+  },
+  "keywords": [
+    "react",
+    "reactjs",
+    "reactive",
+    "model",
+    "state management",
+    "data flow"
+  ],
+  "author": "David Piepgrass",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/qwertie/holders/issues"
+  },
+  "homepage": "https://github.com/qwertie/holders#readme",
+  "devDependencies": {
+    "@types/react": "^16.4.11",
+    "react-dom": "^16.4.2",
+    "typescript": "^3.0.1",
+    "uglify-js": "^3.4.7"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "react": "^16.0.0"
+  }
+}
