@@ -16,6 +16,8 @@ The *holders* library shortens your code by bundling the "getter" (`this.state.t
 
 If `teaTime` is a `Holder<Date>` object, `teaTime.get` returns the current value and `teaTime.set(v)` is called to update `teaTime` with a new value. Although *holders* was written in TypeScript, the package is published as JavaScript code so it can be used equally well from JavaScript and TypeScript projects.
 
+To install it in your npm project, run this terminal command: `npm i holders`
+
 Features
 --------
 
@@ -27,4 +29,4 @@ Features
 To Learn More
 -------------
 
-This library is part of the [TypeScript-React Primer]; see [part 5, example 5](typescript-react-primer.loyc.net/tutorial-5.html#example-5-simple-forms) to learn more about how to use *holders*.
+This library is part of the [TypeScript-React Primer](http://typescript-react-primer.loyc.net); see [part 5, example 5](http://typescript-react-primer.loyc.net/tutorial-5.html#example-5-simple-forms) to learn more about how to use *holders*.
