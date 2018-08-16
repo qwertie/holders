@@ -261,7 +261,7 @@ function renderInput(p: any, defaultType: string|undefined, excludeAttrs: string
   var p2 = omit(p, excludeAttrs) as any;
   if (defaultType)
     p2.type || (p2.type = defaultType);
-  p2 = {...attributes};
+  assign(p2, attributes);
   return maybeWrapInLabel(p, createElement("input", p2, p.children), preferLabelAfter)
 }
 
@@ -500,6 +500,7 @@ export function Slider(p: SliderAttributes)
   });
 }
 
+/** Creates a new object that does not have the specified properties */
 // The strongly-typed version doesn't work for some reason
 //function omit<T, K extends Extract<keyof T,string>>(o: T, names: K[]): Omit<T, K> {
 function omit(o: any, names: string[]): any {
@@ -511,3 +512,12 @@ function omit(o: any, names: string[]): any {
   }
   return r;
 }
+
+/** Assigns all "own" properties from `obj` to `target`. */
+var assign = (Object as any).assign || (
+  (target: any, obj: any) => {
+    for (var k in obj)
+      if (Object.prototype.hasOwnProperty.call(obj, k))
+        target[k] = obj[k];
+    return target;
+  });
