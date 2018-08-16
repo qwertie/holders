@@ -2,7 +2,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import {holdState, holdAllProps, Holders, TextBox, TextArea, Label, LabelSpan,
-        CheckBox, Radio, Button, Slider, TimeBox, DateBox} from '.';
+        CheckBox, Radio, Button, Slider, TimeBox, DateBox} from './4react';
 
 //////////////////////////////////////////////////////////////////////////
 // Demo 1: A form that connects its own state to form controls
