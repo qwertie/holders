@@ -1,3 +1,4 @@
+/* @jsx createElement */
 import {createElement, Component, HTMLAttributes, ComponentElement} from "react";
 import {Holder} from './hold';
 export * from './hold';

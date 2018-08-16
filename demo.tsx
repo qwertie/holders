@@ -1,3 +1,4 @@
+/* @jsx React.createElement */
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import {holdState, holdAllProps, Holders, TextBox, TextArea, Label, LabelSpan,
