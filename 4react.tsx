@@ -1,7 +1,9 @@
-/* @jsx createElement */
 import {createElement, Component, HTMLAttributes, ComponentElement} from "react";
 import {Holder} from './hold';
 export * from './hold';
+
+/* @jsx h */
+var h = createElement;
 
 /** Labeling properties that can be attached to labelable elements such as
  *  Label, TextBox, TextArea, CheckBox, Radio, Button, and Slider. */
