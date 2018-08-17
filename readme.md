@@ -16,15 +16,21 @@ The *holders* library shortens your code by bundling the "getter" (`this.state.t
 
 If `teaTime` is a `Holder<Date>` object, `teaTime.get` returns the current value and `teaTime.set(v)` is called to update `teaTime` with a new value. Although *holders* was written in TypeScript, the package is published as JavaScript code so it can be used equally well from JavaScript and TypeScript projects.
 
+This library consists of two parts: 
+
+1. ['hold'](https://github.com/qwertie/holders/blob/master/hold.ts) is the basic code for creating holder objects, including the `hold()`, `holdState`, `holdProps` and `holdAllProps` functions. This module is tiny and does not use React/JSX.
+2. ['elements'](https://github.com/qwertie/holders/blob/master/elements.tsx) provides small React components named `Label`, `TextBox`, `CheckBox`, etc., which wrap standard elements like `<label>`, `<input type="text">`, and `<input type="checkbox">`.
+
+It also includes an example (demo.html, demo.tsx).
+
 To install it in your npm project, run this terminal command: `npm i holders`
 
 Features
 --------
 
 - UMD modules targeting ES5 (old browsers supported)
-- Two parts: 'hold' is React-independent; 'elements' provides React components that wrap standard elements like `<label>`, `<input type="text">`, `<input type="checkbox">` and so on.
-- Minified size: 0.9K for hold.min.js, 4.7K for elements.min.js
-- Includes a demo (demo.html)
+- Minified size: 0.9K for hold.min.js, 4.9K for elements.min.js
+- Includes d.ts files (written in TypeScript)
 
 To Learn More
 -------------
