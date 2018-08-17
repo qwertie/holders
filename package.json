@@ -2,8 +2,13 @@
   "name": "holders",
   "version": "1.0.0",
   "description": "A tiny library to help you construct React user interfaces quickly & easily",
-  "main": "4react",
-  "typings": "4react",
+  "main": "elements",
+  "typings": "elements",
+  "files": [
+    "hold.js", "hold.min.js", "hold.d.ts",
+    "elements.js", "elements.min.js", "elements.d.ts",
+    "readme.md", "demo.html", "demo.tsx"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc && minify",

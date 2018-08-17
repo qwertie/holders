@@ -22,8 +22,8 @@ Features
 --------
 
 - UMD modules targeting ES5 (old browsers supported)
-- Two parts: 'hold' is React-independent; '4react' provides React components that wrap standard elements like `<label>`, `<input type="text">`, `<input type="checkbox">` and so on.
-- Minified size: 0.9K for hold.min.js, 4.7K for 4react.min.js
+- Two parts: 'hold' is React-independent; 'elements' provides React components that wrap standard elements like `<label>`, `<input type="text">`, `<input type="checkbox">` and so on.
+- Minified size: 0.9K for hold.min.js, 4.7K for elements.min.js
 - Includes a demo (demo.html)
 
 To Learn More
