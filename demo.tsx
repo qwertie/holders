@@ -1,7 +1,8 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import {holdState, holdAllProps, Holders, TextBox, TextArea, Label, LabelSpan,
+import {holdState, holdAllProps, Holder, Holders, TextBox, TextArea, Label, LabelSpan,
         CheckBox, Radio, Button, Slider, TimeBox, DateBox} from './elements';
+import { hold } from './hold';
 
 /* @jsx h */
 var h = React.createElement;
@@ -111,18 +112,32 @@ function PersonForm(m: Holders<Model>) {
 }
 
 
-class App extends React.Component<{model:Model}, Holders<Model>>
+class App extends React.Component<{model:Model}, Holders<Model> & {model:Holder<Model>}>
 {
   constructor(props: {model:Model}) {
     super(props);
-    this.state = holdAllProps(props.model, 
-      (propName, newVal) => {
-        this.setState({}); // refresh!
+    var h: Holders<Model> = 
+      holdAllProps(props.model, (_, __) => {
+        this.forceUpdate(); // refresh!
         return true;
       });
+    this.state = {...h, 
+      model: hold(props, "model", (_, newModel) => {
+        // Model was changed via TextArea. Update the model.
+        Object.assign(props.model, newModel);
+        this.forceUpdate();
+      })
+    };
   }
   render() {
-    return <PersonForm {...this.state}/>;
+    return <div>
+      <PersonForm {...this.state}/>
+      <p>JSON version (editable)</p>
+      <TextArea value={this.state.model} rows={10} cols={50}
+                stringify={m => JSON.stringify(m,undefined,"  ")} 
+                parse={ (input, oldVal) => ({...oldVal, ...JSON.parse(input)}) }/>
+      <StatefulForm/>
+    </div>;
   }
 }
 
