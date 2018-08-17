@@ -218,7 +218,7 @@ abstract class TextBase<T, Props extends TextAttributesBase<T>>
   {
     var p = this.props;
     var p2 = omit(p, LabelAttrsAndParse) as any;
-    p2.value = this.state.tempText || asStr(p.value.get, p.stringify);
+    p2.value = this.state.tempText != null ? this.state.tempText : asStr(p.value.get, p.stringify);
     p2.onBlur = (e: any) => { // lost focus
       this.setState({ tempText: undefined });
     };
@@ -226,7 +226,11 @@ abstract class TextBase<T, Props extends TextAttributesBase<T>>
       var value: string = e.target.value;
       if (p.parse) {
         this.setState({ tempText: value });
-        var result = p.parse((e.target as any).value, p.value.get);
+        try {
+          var result = p.parse((e.target as any).value, p.value.get);
+        } catch(e) {
+          result = e;
+        }
         var scv = e.target.setCustomValidity;
         if (result instanceof Error) {
           if (scv)
