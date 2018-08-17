@@ -15,6 +15,6 @@
     "downlevelIteration": false, // for-of loops and yield statement in ES5
     "jsxFactory": "createElement", // Note: /** @jsx createElement */ doesn't work
   },
-  "include": ["hold.ts", "4react.tsx"],
+  "include": ["hold.ts", "elements.tsx"],
   "exclude": ["node_modules", "tests", "b+tree.test.ts"],
 }

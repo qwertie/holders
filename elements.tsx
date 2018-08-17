@@ -40,6 +40,7 @@ export function Label(p: LabelProps & HTMLAttributes<HTMLElement>)
   return p.p ? <p>{label}</p> : label;
 }
 
+/** Subcomponent for the `<span>` of label text within a Label. */
 export function LabelSpan(p: LabelProps)
 {
   var auto = !(p.labelStyle || p.labelClass || p.labelAfter);
@@ -95,7 +96,7 @@ export interface InputAttributes<T> extends InputAttributesBase {
 type Omit<T, K> = Pick<T, Exclude<keyof T, K>>
 
 /** Properties of a Radio component. Example: `<Radio value={model.fruit} is="apple"/>` */
-type RadioAttributes<T> = (T extends boolean ? {is?: T} : {is: T}) & Omit<InputAttributes<T>,"is">;
+export type RadioAttributes<T> = (T extends boolean ? {is?: T} : {is: T}) & Omit<InputAttributes<T>,"is">;
 
 /** Attributes supported by Slider and its underlying `<input type="range">` element.
  *  Only horizontal sliders are supported in most browsers. */
@@ -122,7 +123,7 @@ interface DerivedInterface_<T> extends BaseInterface<T> {
   /* ... other props */
 }
 
-type ConvertsToString<T> = T extends string ? {} : 
+export type ConvertsToString<T> = T extends string ? {} : 
      {parse: Parse<T>} &
        (T extends {toString(): string} ? {} : {stringify(t:T): string});
 
@@ -183,8 +184,8 @@ export interface DateInputAttributes extends TextInputAttributes_<Date|undefined
 
 export interface TimeInputAttributes extends DateInputAttributes
 {
-  /** Day to associate with the time by default (if unspecified, 
-   *  the current date is used.) */
+  /** Day to associate with the time when the the user inputs a valid time 
+   *  and the `value` property was undefined. (default: today's date) */
   day?: Date;
 }
 
@@ -212,7 +213,7 @@ const LabelAttrsAndIs = LabelAttrs.concat('is');
 abstract class TextBase<T, Props extends TextAttributesBase<T>> 
        extends Component<Props, {tempText?:string}>
 {
-  abstract chooseType(p2: any): string;
+  protected abstract chooseType(p2: any): string;
   state = {} as {tempText?:string};
   render()
   {
@@ -241,7 +242,7 @@ abstract class TextBase<T, Props extends TextAttributesBase<T>>
             scv.call(e.target, ""); // no error
         }
       } else {
-        // If user did not provide a parse function, assume T is string (no way to enforce)
+        // If user did not provide a parse function, assume T is string
         p.value.set(value as any as T);
       }
     };
@@ -291,7 +292,7 @@ function maybeWrapInLabel(p: LabelProps, el: JSX.Element, preferAfter?: boolean)
 */
 export class TextBox<T> extends TextBase<T, TextInputAttributes<T>>
 {
-  chooseType(p2: any) {
+  protected chooseType(p2: any) {
     p2.type || (p2.type = "text");
     return "input";
   }
@@ -303,7 +304,7 @@ export class TextBox<T> extends TextBase<T, TextInputAttributes<T>>
  */
 export class TextArea<T> extends TextBase<T, TextAreaAttributes<T>>
 {
-  chooseType(p2: any) { return "textarea"; } 
+  protected chooseType(p2: any) { return "textarea"; } 
 }
 
 /** A Date editor based on `<input type="date">`, with `props.value.get`
@@ -474,10 +475,10 @@ export interface FileButtonAttributes extends ButtonAttributes {
 
 /** A simple wrapper for `<button>` that can have a label. 
  *  Does not use a Holder. */
-export function Button(p: InputAttributesBase)
+export function Button(p: ButtonAttributes)
 {
   var p2 = omit(p, LabelAttrs) as any;
-  return maybeWrapInLabel(p, createElement("button", p2, p.children), false);
+  return maybeWrapInLabel(p, createElement(p.type ? "input" : "button", p2, p.children), false);
 }
 
 /** Wrapper for `<input type="file">`, the file selector element, that
