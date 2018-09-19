@@ -21,7 +21,7 @@ This library consists of two parts:
 1. ['hold'](https://github.com/qwertie/holders/blob/master/hold.ts) is the basic code for creating holder objects, including the `hold()`, `holdState`, `holdProps` and `holdAllProps` functions. This module is tiny and does not use React/JSX.
 2. ['elements'](https://github.com/qwertie/holders/blob/master/elements.tsx) provides small React components named `Label`, `TextBox`, `CheckBox`, etc., which wrap standard elements like `<label>`, `<input type="text">`, and `<input type="checkbox">`.
 
-It also includes an example (demo.html, demo.tsx).
+It also includes an example (demo.html, [demo.tsx](https://github.com/qwertie/holders/blob/master/demo.tsx)).
 
 To install it in your npm project, run this terminal command: `npm i holders`
 

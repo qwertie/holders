@@ -35,11 +35,12 @@ class StatefulForm extends React.Component<{}, FormState>
   }
   render() {
     var hs = holdState(this as StatefulForm), date = hs('date');
+    var tmp = <TextBox p value={this.state} prop="code"/>;
     return (
       <fieldset>
         <legend>Additional input fields:</legend>
         <CheckBox p value={hs('checkbox1')} label="I am prepared to see various form elements"/>
-        { !this.state.checkbox1 ? [] : [
+        { ...(!this.state.checkbox1 ? [] : [
           <Label p label="Date/time (UTC):">
             <DateBox value={date} utc={true}/>
             <TimeBox value={date} utc={true}/>
@@ -73,7 +74,7 @@ class StatefulForm extends React.Component<{}, FormState>
           <p><a href="http://loyc.net/les">LES</a> <a href="http://loyc.net/2017/lesv3-update.html">v3</a> code<br/>
             <TextArea value={hs('code')} cols={50} rows={5}/>
           </p>
-        ]}
+        ]) }
       </fieldset>);
   }
 }
@@ -85,14 +86,15 @@ class StatefulForm extends React.Component<{}, FormState>
 // Note: When using holdAllProps(model), unspecified values must be 
 //       explicitly set to undefined so the function knows they exist.
 class Model {
-  name: string = "";
-  age?: number = undefined;
-  address: string = "";
-  city: string = "";
+  name:    string = "";
+  age?:    number = undefined;
+  date?:   Date = undefined;
+  address:  string = "";
+  city:     string = "";
   province: string = "";
-  country: string = "";
-  date?: Date = undefined;
-  color: string = "#bbff44";
+  country:  string = "";
+  postCode: string = "";
+  color:   string = "#bbff44";
   married: boolean = false;
 }
 
@@ -111,23 +113,38 @@ function PersonForm(m: Holders<Model>) {
   </form>;
 }
 
+// Two possibilities:
+// 1. State is normal variables - internal state
+// 2. State is holders          - external state
 
 class App extends React.Component<{model:Model}, Holders<Model> & {model:Holder<Model>}>
 {
   constructor(props: {model:Model}) {
     super(props);
-    var h: Holders<Model> = 
-      holdAllProps(props.model, (_, __) => {
-        this.forceUpdate(); // refresh!
-        return true;
-      });
-    this.state = {...h, 
+    
+    var onChange = (name: string, newValue: any) => {
+      // Set this.state[name] to a clone of itself. The purpose of 
+      // doing this is to allow shallow comparisons to detect the 
+      // change in state, in case the user is using something like 
+      // Pure Components which only update when the state changes.
+      var prop = (this.state as any)[name];
+      this.setState({ [name]: prop.clone ? prop.clone() : prop } as any);
+      // Ask holder to change the underlying model
+      return true;
+    }
+    this.state = {
       model: hold(props, "model", (_, newModel) => {
         // Model was changed via TextArea. Update the model.
         Object.assign(props.model, newModel);
         this.forceUpdate();
-      })
-    };
+      }),
+      ... Object.keys(props.model).map(k =>
+        ({ k: hold(this.state, k as any, onChange) }))
+    } as any;
+
+    // 1. Send holders to PersonForm
+    // 2. So we need a group of holders as the state, I guess...
+    // 3. But the state should _actually_ be modified
   }
   render() {
     return <div>

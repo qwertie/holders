@@ -5,9 +5,15 @@
   "main": "elements",
   "typings": "elements",
   "files": [
-    "hold.js", "hold.min.js", "hold.d.ts",
-    "elements.js", "elements.min.js", "elements.d.ts",
-    "readme.md", "demo.html", "demo.tsx"
+    "hold.js",
+    "hold.min.js",
+    "hold.d.ts",
+    "elements.js",
+    "elements.min.js",
+    "elements.d.ts",
+    "readme.md",
+    "demo.html",
+    "demo.tsx"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -35,13 +41,14 @@
   },
   "homepage": "https://github.com/qwertie/holders#readme",
   "devDependencies": {
-    "@types/react": "^16.4.11",
-    "react-dom": "^16.4.2",
-    "typescript": "^3.0.1",
-    "uglify-js": "^3.4.7"
+    "@types/react": "^16.4.14",
+    "react-dom": "^16.5.2",
+    "typescript": "^3.0.3",
+    "uglify-js": "^3.4.9"
   },
   "dependencies": {},
   "peerDependencies": {
-    "react": "^16.4.2"
+    "react": ">1.0.0",
+    "preact": ">1.0.0"
   }
 }

@@ -35,7 +35,7 @@ export var DefaultLabelSpan = { class: "labelspan", style: undefined };
  */
 export function Label(p: LabelProps & HTMLAttributes<HTMLElement>)
 {
-  var label = createElement("label", omit(p, LabelAttrs), 
+  var label = h("label", omit(p, LabelAttrs), 
     ...(p.labelAfter ? [p.children, LabelSpan(p)] : [LabelSpan(p), p.children]));
   return p.p ? <p>{label}</p> : label;
 }
@@ -81,10 +81,17 @@ export interface ButtonAttributes extends InputAttributesBase {
   type?: "button"|"submit"|"reset"|"file";
 }
 
+export interface ModelRef<T, Prop="value"> {
+  /** An object that contains a value used in an editable component. This
+   *  can either be a `Holder<T>` or an observable model from MobX. */
+  value: Holder<T, Prop>;
+  /** Name of a property to read within the model (the default is "value",
+   *  which is the property that holds the value of a `Holder<T>`) */
+  prop?: Prop;
+}
+
 /** Attributes that apply to all `input` elements except buttons */
-export interface InputAttributes<T> extends InputAttributesBase {
-  /** Current value associated with the form element. */
-  value: Holder<T>;
+export interface InputAttributes<T=string, Prop="value"> extends ModelRef<T, Prop>, InputAttributesBase {
   /** Prevents the user from modifying the value of the input (without changing the widget's appearance) */
   readOnly?: boolean;
   /** The name of the control, which is submitted with the control's value as part of the form data. */
@@ -96,11 +103,12 @@ export interface InputAttributes<T> extends InputAttributesBase {
 type Omit<T, K> = Pick<T, Exclude<keyof T, K>>
 
 /** Properties of a Radio component. Example: `<Radio value={model.fruit} is="apple"/>` */
-export type RadioAttributes<T> = (T extends boolean ? {is?: T} : {is: T}) & Omit<InputAttributes<T>,"is">;
+export type RadioAttributes<T=string, Prop="value"> = 
+    (T extends boolean ? {is?: T} : {is: T}) & Omit<InputAttributes<T, Prop>,"is">;
 
 /** Attributes supported by Slider and its underlying `<input type="range">` element.
  *  Only horizontal sliders are supported in most browsers. */
-export interface SliderAttributes extends InputAttributes<number> {
+export interface SliderAttributes<Prop="value"> extends InputAttributes<number, Prop> {
   /** The minimum (numeric or date/datetime) value for this input */
   min: number;
   /** The maximum (numeric or date/datetime) value for this input */
@@ -116,20 +124,13 @@ export interface SliderAttributes extends InputAttributes<number> {
   list?: string;
 }
 
-interface BaseInterface<T> {}
-interface DerivedInterface_<T> extends BaseInterface<T> {
-  type?: "text"|"url"|"tel"|"email"|"password"|"number"|"search"|"color"|
-         "time"|"date"|"datetime"|"datetime-local"|"month"|"week"|"hidden";
-  /* ... other props */
-}
-
-export type ConvertsToString<T> = T extends string ? {} : 
+export type ConvertsToString<T=string> = T extends string ? {} : 
      {parse: Parse<T>} &
        (T extends {toString(): string} ? {} : {stringify(t:T): string});
 
 type Parse<T> = (input:string, oldValue: T) => T|Error;
 
-export interface TextAttributesBase<T> extends InputAttributes<T> {
+export interface TextAttributesBase<T=string,Prop="value"> extends InputAttributes<T,Prop> {
   /** A function that parses the input string into the internal format
    *  expected by the model. This function is called on every keypress. 
    *  If an error is returned, the error message is associated with the 
@@ -142,8 +143,8 @@ export interface TextAttributesBase<T> extends InputAttributes<T> {
 }
 
 /** Attributes supported by TextBox and its underlying `<input>` element. */
-export type TextInputAttributes<T> = TextInputAttributes_<T> & ConvertsToString<T>;
-interface TextInputAttributes_<T> extends TextAttributesBase<T> {
+export type TextInputAttributes<T=string,Prop="value"> = TextInputAttributes_<T,Prop> & ConvertsToString<T>;
+interface TextInputAttributes_<T=string,Prop="value"> extends TextAttributesBase<T,Prop> {
   /** Type of textbox this is (this is the subset of HTML input types 
    *  that use a string value.) For certain types, the browser will
    *  validate the value and reject strings that do not conform to
@@ -177,12 +178,12 @@ interface TextInputAttributes_<T> extends TextAttributesBase<T> {
   placeholder?: string; 
 }
 
-export interface DateInputAttributes extends TextInputAttributes_<Date|undefined>
+export interface DateInputAttributes<Prop="value"> extends TextInputAttributes_<Date|undefined,Prop>
 {
   utc?: boolean;
 }
 
-export interface TimeInputAttributes extends DateInputAttributes
+export interface TimeInputAttributes<Prop="value"> extends DateInputAttributes<Prop>
 {
   /** Day to associate with the time when the the user inputs a valid time 
    *  and the `value` property was undefined. (default: today's date) */
@@ -190,8 +191,8 @@ export interface TimeInputAttributes extends DateInputAttributes
 }
 
 /** Attributes supported for TextArea and its underlying `<textarea>` element. */
-export type TextAreaAttributes<T> = TextAreaAttributes_<T> & ConvertsToString<T>;
-interface TextAreaAttributes_<T> extends TextAttributesBase<T> {
+export type TextAreaAttributes<T=string,Prop="value"> = TextAreaAttributes_<T,Prop> & ConvertsToString<T>;
+interface TextAreaAttributes_<T=string,Prop="value"> extends TextAttributesBase<T,Prop> {
   /** The visible width of the text control, in average character widths. 
    *  If it is specified, it must be a positive integer. If it is not 
    *  specified, the default value is 20. You can also set the width
@@ -209,8 +210,17 @@ const LabelAttrs = ['label', 'labelStyle', 'labelClass', 'labelAfter', 'p'];
 const LabelAttrsAndParse = LabelAttrs.concat('parse', 'stringify');
 const LabelAttrsAndIs = LabelAttrs.concat('is');
 
+function get<T>(p: ModelRef<T,any>)
+{
+  return (p as any)[p.prop || "value"] as T;
+}
+function set<T>(p: ModelRef<T,any>, val: T)
+{
+  return (p as any)[p.prop || "value"] = val;
+}
+
 // Base class of TextBox and TextArea
-abstract class TextBase<T, Props extends TextAttributesBase<T>> 
+abstract class TextBase<Props extends TextAttributesBase<T,Prop>, T, Prop="value"> 
        extends Component<Props, {tempText?:string}>
 {
   protected abstract chooseType(p2: any): string;
@@ -219,7 +229,7 @@ abstract class TextBase<T, Props extends TextAttributesBase<T>>
   {
     var p = this.props;
     var p2 = omit(p, LabelAttrsAndParse) as any;
-    p2.value = this.state.tempText != null ? this.state.tempText : asStr(p.value.get, p.stringify);
+    p2.value = this.state.tempText != null ? this.state.tempText : asStr(get(p), p.stringify);
     p2.onBlur = (e: any) => { // lost focus
       this.setState({ tempText: undefined });
     };
@@ -228,7 +238,7 @@ abstract class TextBase<T, Props extends TextAttributesBase<T>>
       if (p.parse) {
         this.setState({ tempText: value });
         try {
-          var result = p.parse((e.target as any).value, p.value.get);
+          var result = p.parse((e.target as any).value, get(p));
         } catch(e) {
           result = e;
         }
@@ -237,20 +247,20 @@ abstract class TextBase<T, Props extends TextAttributesBase<T>>
           if (scv)
             scv.call(e.target, result.message);
         } else {
-          p.value.set(result);
+          set(p, result);
           if (scv)
             scv.call(e.target, ""); // no error
         }
       } else {
         // If user did not provide a parse function, assume T is string
-        p.value.set(value as any as T);
+        set(p, value as any as T);
       }
     };
     p2.onBlur = (e: any) => { // lost focus
       this.setState({ tempText: undefined });
     };
     var tag = this.chooseType(p2);
-    return maybeWrapInLabel(p, createElement(tag, p2, p.children));
+    return maybeWrapInLabel(p, h(tag, p2, p.children));
 
     function asStr(val: T, stringify?: (t:T) => string) {
       if (stringify)
@@ -267,7 +277,7 @@ function renderInput(p: any, defaultType: string|undefined, excludeAttrs: string
   if (defaultType)
     p2.type || (p2.type = defaultType);
   assign(p2, attributes);
-  return maybeWrapInLabel(p, createElement("input", p2, p.children), preferLabelAfter)
+  return maybeWrapInLabel(p, h("input", p2, p.children), preferLabelAfter)
 }
 
 function maybeWrapInLabel(p: LabelProps, el: JSX.Element, preferAfter?: boolean)
@@ -290,7 +300,7 @@ function maybeWrapInLabel(p: LabelProps, el: JSX.Element, preferAfter?: boolean)
         <TextBox label="Integer:" type="number" value={numberHolder} 
                  parse={s => parseInt(s) || new Error("Not an int")}/>
 */
-export class TextBox<T> extends TextBase<T, TextInputAttributes<T>>
+export class TextBox<T=string,Prop="value"> extends TextBase<TextInputAttributes<T, Prop>, T, Prop>
 {
   protected chooseType(p2: any) {
     p2.type || (p2.type = "text");
@@ -302,7 +312,7 @@ export class TextBox<T> extends TextBase<T, TextInputAttributes<T>>
     parsing and possibly invalid input. If T is not `string` then 
     the `parse` property is required. Can have a label.
  */
-export class TextArea<T> extends TextBase<T, TextAreaAttributes<T>>
+export class TextArea<T=string,Prop="value"> extends TextBase<TextAreaAttributes<T, Prop>, T, Prop>
 {
   protected chooseType(p2: any) { return "textarea"; } 
 }
@@ -314,7 +324,7 @@ export class TextArea<T> extends TextBase<T, TextAreaAttributes<T>>
  *  and a TimeBox can be used together to edit a single `Holder<Date>`.
  *  Can have a label.
  **/
-export function DateBox(props: DateInputAttributes) {
+export function DateBox<Prop="value">(props: DateInputAttributes<Prop>) {
 /*  The type system seems broken in TypeScript v2.9 in case you combine
     union types with conditional types. The following test case demos the
     issue, but it seems fixed in the Playground (v3.1?). 
@@ -339,7 +349,7 @@ export function DateBox(props: DateInputAttributes) {
   p2.stringify = (d:Date|undefined) => dateToString(d, props.utc) || "";
      // new Date(d.valueOf() + d.getTimezoneOffset() * 60000).toISOString().substr(0,10)
   // return <TextBox<Date|undefined> {...p2}/>; (Avoid unnecessary __assign)
-  return createElement(TextBox as any, p2);
+  return h(TextBox as any, p2);
 }
 
 /** Parses a date if it is in the form YYYY-MM-DD, as it will be
@@ -381,14 +391,14 @@ export function dateToString(d: Date|undefined, utc?: boolean): string|undefined
  *  default day when the user selects a time; if `day` is undefined then
  *  the current date is used as the default. Can have a label.
  */
-export function TimeBox(props: TimeInputAttributes) {
+export function TimeBox<Prop="value">(props: TimeInputAttributes<Prop>) {
   var p2 = omit(props, ['utc']) as any;
   p2.type || (p2.type = "time");
   p2.parse = (input:string, oldValue: Date|undefined) => 
              parse24hTime(input, oldValue || props.day, props.utc);
   p2.stringify = (d:Date|undefined) => timeTo24hString(d, props.utc);
   // return <TextBox<Date|undefined> {...p2}/>; (Avoid unnecessary __assign)
-  return createElement(TextBox as any, p2);
+  return h(TextBox as any, p2);
 }
 
 /** Gets a 24-hour time string suitable for use in `<input type="time"/>` */
@@ -423,11 +433,11 @@ export function parse24hTime(value: string|undefined, day?: Date, utc?: boolean)
  * 
  *      <CheckBox value={booleanHolder} label="My Checkbox"/>
  */
-export function CheckBox(props: InputAttributes<boolean>)
+export function CheckBox<Prop="value">(props: InputAttributes<boolean, Prop>)
 {
   return renderInput(props, "checkbox", LabelAttrs, true, {
-    checked: props.value.get,
-    onChange: (e: any) => {props.value.set(e.target.checked);}
+    checked: get(props),
+    onChange: (e: any) => {set(props, e.target.checked);}
   });
 }
 
@@ -446,15 +456,15 @@ export function CheckBox(props: InputAttributes<boolean>)
  *  as a boolean, and it calls `props.value.set(true)` when it is 
  *  checked and `props.value.set(false)` when it is unchecked.
  */
-export function Radio<T>(props: RadioAttributes<T>)
+export function Radio<T,Prop="value">(props: RadioAttributes<T,Prop>)
 {
   return renderInput(props, "radio", LabelAttrsAndIs, true, {
-    checked: props.is !== undefined ? props.value.get == props.is : !!props.value.get,
+    checked: props.is !== undefined ? get(props) == props.is : !!get(props),
     onChange: (e: any) => {
       if (e.target.checked)
-        props.value.set(props.is !== undefined ? props.is : true as any as T);
+        set(props, props.is !== undefined ? props.is : true as any as T);
       else if (props.is === undefined)
-        props.value.set(false as any as T);
+        set(props, false as any as T);
     }
   });
 }
@@ -478,7 +488,7 @@ export interface FileButtonAttributes extends ButtonAttributes {
 export function Button(p: ButtonAttributes)
 {
   var p2 = omit(p, LabelAttrs) as any;
-  return maybeWrapInLabel(p, createElement(p.type ? "input" : "button", p2, p.children), false);
+  return maybeWrapInLabel(p, h(p.type ? "input" : "button", p2, p.children), false);
 }
 
 /** Wrapper for `<input type="file">`, the file selector element, that
@@ -490,24 +500,24 @@ export function FileButton(p: FileButtonAttributes)
 
 /** Wrapper for `<input type="range">`, the horizontal slider element, 
  *  based on `Holder<T>`. Can have a label. Is an alias for Slider. */
-export function Range(p: SliderAttributes) { return Slider(p); }
+export function Range<Prop="value">(p: SliderAttributes<Prop>) { return Slider(p); }
 
 /** Wrapper for `<input type="range">`, the horizontal slider element,
  *  based on `Holder<T>`. Can have a label. Example:
  * 
  *      <Slider value={numberHolder} min={-10} max={10} step={1}/>
  **/
-export function Slider(p: SliderAttributes)
+export function Slider<Prop="value">(p: SliderAttributes<Prop>)
 {
   return renderInput(p, "range", LabelAttrs, false, {
-    value: p.value.get,
-    onChange: (e: any) => { p.value.set(parseFloat(e.target.value)); }
+    value: get(p),
+    onChange: (e: any) => { set(p, parseFloat(e.target.value)); }
   });
 }
 
 /** Creates a new object that does not have the specified properties */
 // The strongly-typed version doesn't work for some reason
-//function omit<T, K extends Extract<keyof T,string>>(o: T, names: K[]): Omit<T, K> {
+//function omit<T, K extends keyof T>(o: T, names: K[]): Omit<T, K> {
 function omit(o: any, names: string[]): any {
   var r: any = {};
   for (var k in o) {
@@ -519,7 +529,7 @@ function omit(o: any, names: string[]): any {
 }
 
 /** Assigns all "own" properties from `obj` to `target`. */
-var assign = (Object as any).assign || (
+const assign = (Object as any).assign || (
   (target: any, obj: any) => {
     for (var k in obj)
       if (Object.prototype.hasOwnProperty.call(obj, k))

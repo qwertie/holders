@@ -8,13 +8,14 @@
     "sourceMap": false,         // Whether to create *.js.map files
     "jsx": "react",             // Causes inline XML (JSX code) to be expanded
     "strict": true,             // Strict types, eg. prohibits `var x=0; x=null`
+    "noImplicitAny": true,
     "alwaysStrict": true,       // Enable JavaScript's "use strict" mode
     "esModuleInterop": true,    // CommonJS import behavior similar to Babel/mjs
     "declaration": true,        // Generate d.ts files
     "lib": ["es5", "dom"],      // APIs expected to exist at runtime
     "downlevelIteration": false, // for-of loops and yield statement in ES5
-    "jsxFactory": "createElement", // Note: /** @jsx createElement */ doesn't work
+    "jsxFactory": "h",          // Note: /** @jsx h */ only works in Parcel
   },
   "include": ["hold.ts", "elements.tsx"],
-  "exclude": ["node_modules", "tests", "b+tree.test.ts"],
+  "exclude": ["node_modules", "tests"],
 }
