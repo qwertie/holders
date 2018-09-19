@@ -1,7 +1,7 @@
 
 /** A wrapper around a value. */
-export type Holder<T, Prop="value"> = {
-  [Prop]: T;
+export type Holder<T, Prop extends string | symbol = "value"> = {
+  [P in Prop]: T;
 }
 
 /** Maps an interface to a collection of Holders. For example,
@@ -34,11 +34,10 @@ export type Holders<Model> = {
  *         the value assigned to the Holder's val. `onChange` can return
  *         `true` to cause the default change behavior, i.e. 
  *         `model[attr] = newValue`.
- *  @param this_ The value of `this` used when calling `onChange`.
  */
-export function hold<T, Attr extends keyof T>(model: T, attr: Attr, onChange: ((attr: Attr, newValue: T[Attr]) => void|boolean) | undefined, this_?: any): Holder<T[Attr]>
+export function hold<T, Attr extends keyof T>(model: T, attr: Attr, onChange: ((attr: Attr, newValue: T[Attr]) => void|boolean) | undefined): Holder<T[Attr]>
 {
-  return new Hold(model, attr, onChange, this_);
+  return new Hold(model, attr, onChange);
 }
 
 export class Hold<T, Attr extends keyof T> implements Holder<T[Attr]>
@@ -112,7 +111,7 @@ export function onChangeStateOf<This extends StatefulComponent<S>, S=This["state
 export function onChangeHeldStateOf<This extends StatefulComponent<S>, S=This["state"]>(_this: This)
 {
   return (attr: keyof S, newValue: any) => {
-      var prop = (this.state as any)[name];
+      var prop = (_this.state as any)[name];
       _this.setState({ [name]: prop.clone ? prop.clone() : prop } as any);
       return true;
   };

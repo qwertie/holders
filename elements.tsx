@@ -26,11 +26,11 @@ export interface LabelProps {
 export var DefaultLabelSpan = { class: "labelspan", style: undefined };
 
 /** Wraps elements or components in a `<label>` element (and optional `<p>` element),
- *  for example, `<Label label="Hello"><TextBox value={x}/></Label>` becomes
+ *  for example, `<Label label="Hello"><TextBox model={x}/></Label>` becomes
  *  
  *      <label>
  *        <span style={DefaultLabel.style} class={DefaultLabel.class}>Hello</span>
- *        <TextBox value={x}/>
+ *        <TextBox model={x}/>
  *      </label>
  */
 export function Label(p: LabelProps & HTMLAttributes<HTMLElement>)
@@ -81,17 +81,17 @@ export interface ButtonAttributes extends InputAttributesBase {
   type?: "button"|"submit"|"reset"|"file";
 }
 
-export interface ModelRef<T, Prop="value"> {
+export interface ModelRef<T, Prop extends string|symbol="value"> {
   /** An object that contains a value used in an editable component. This
    *  can either be a `Holder<T>` or an observable model from MobX. */
-  value: Holder<T, Prop>;
+  readonly model: Holder<T, Prop>;
   /** Name of a property to read within the model (the default is "value",
    *  which is the property that holds the value of a `Holder<T>`) */
-  prop?: Prop;
+  readonly prop?: Prop;
 }
 
 /** Attributes that apply to all `input` elements except buttons */
-export interface InputAttributes<T=string, Prop="value"> extends ModelRef<T, Prop>, InputAttributesBase {
+export interface InputAttributes<T=string, Prop extends string|symbol="value"> extends ModelRef<T, Prop>, InputAttributesBase {
   /** Prevents the user from modifying the value of the input (without changing the widget's appearance) */
   readOnly?: boolean;
   /** The name of the control, which is submitted with the control's value as part of the form data. */
@@ -103,12 +103,12 @@ export interface InputAttributes<T=string, Prop="value"> extends ModelRef<T, Pro
 type Omit<T, K> = Pick<T, Exclude<keyof T, K>>
 
 /** Properties of a Radio component. Example: `<Radio value={model.fruit} is="apple"/>` */
-export type RadioAttributes<T=string, Prop="value"> = 
+export type RadioAttributes<T=string, Prop extends string|symbol="value"> = 
     (T extends boolean ? {is?: T} : {is: T}) & Omit<InputAttributes<T, Prop>,"is">;
 
 /** Attributes supported by Slider and its underlying `<input type="range">` element.
  *  Only horizontal sliders are supported in most browsers. */
-export interface SliderAttributes<Prop="value"> extends InputAttributes<number, Prop> {
+export interface SliderAttributes<Prop extends string|symbol="value"> extends InputAttributes<number, Prop> {
   /** The minimum (numeric or date/datetime) value for this input */
   min: number;
   /** The maximum (numeric or date/datetime) value for this input */
@@ -130,7 +130,7 @@ export type ConvertsToString<T=string> = T extends string ? {} :
 
 type Parse<T> = (input:string, oldValue: T) => T|Error;
 
-export interface TextAttributesBase<T=string,Prop="value"> extends InputAttributes<T,Prop> {
+export interface TextAttributesBase<T=string,Prop extends string|symbol="value"> extends InputAttributes<T,Prop> {
   /** A function that parses the input string into the internal format
    *  expected by the model. This function is called on every keypress. 
    *  If an error is returned, the error message is associated with the 
@@ -143,8 +143,8 @@ export interface TextAttributesBase<T=string,Prop="value"> extends InputAttribut
 }
 
 /** Attributes supported by TextBox and its underlying `<input>` element. */
-export type TextInputAttributes<T=string,Prop="value"> = TextInputAttributes_<T,Prop> & ConvertsToString<T>;
-interface TextInputAttributes_<T=string,Prop="value"> extends TextAttributesBase<T,Prop> {
+export type TextInputAttributes<T=string,Prop extends string|symbol="value"> = TextInputAttributes_<T,Prop> & ConvertsToString<T>;
+interface TextInputAttributes_<T=string,Prop extends string|symbol="value"> extends TextAttributesBase<T,Prop> {
   /** Type of textbox this is (this is the subset of HTML input types 
    *  that use a string value.) For certain types, the browser will
    *  validate the value and reject strings that do not conform to
@@ -178,21 +178,21 @@ interface TextInputAttributes_<T=string,Prop="value"> extends TextAttributesBase
   placeholder?: string; 
 }
 
-export interface DateInputAttributes<Prop="value"> extends TextInputAttributes_<Date|undefined,Prop>
+export interface DateInputAttributes<Prop extends string|symbol="value"> extends TextInputAttributes_<Date|undefined,Prop>
 {
   utc?: boolean;
 }
 
-export interface TimeInputAttributes<Prop="value"> extends DateInputAttributes<Prop>
+export interface TimeInputAttributes<Prop extends string|symbol="value"> extends DateInputAttributes<Prop>
 {
   /** Day to associate with the time when the the user inputs a valid time 
-   *  and the `value` property was undefined. (default: today's date) */
+   *  and the value of model[prop] was undefined. (default: today's date) */
   day?: Date;
 }
 
 /** Attributes supported for TextArea and its underlying `<textarea>` element. */
-export type TextAreaAttributes<T=string,Prop="value"> = TextAreaAttributes_<T,Prop> & ConvertsToString<T>;
-interface TextAreaAttributes_<T=string,Prop="value"> extends TextAttributesBase<T,Prop> {
+export type TextAreaAttributes<T=string,Prop extends string|symbol="value"> = TextAreaAttributes_<T,Prop> & ConvertsToString<T>;
+interface TextAreaAttributes_<T=string,Prop extends string|symbol="value"> extends TextAttributesBase<T,Prop> {
   /** The visible width of the text control, in average character widths. 
    *  If it is specified, it must be a positive integer. If it is not 
    *  specified, the default value is 20. You can also set the width
@@ -220,7 +220,7 @@ function set<T>(p: ModelRef<T,any>, val: T)
 }
 
 // Base class of TextBox and TextArea
-abstract class TextBase<Props extends TextAttributesBase<T,Prop>, T, Prop="value"> 
+abstract class TextBase<Props extends TextAttributesBase<T,Prop>, T, Prop extends string|symbol="value"> 
        extends Component<Props, {tempText?:string}>
 {
   protected abstract chooseType(p2: any): string;
@@ -300,7 +300,7 @@ function maybeWrapInLabel(p: LabelProps, el: JSX.Element, preferAfter?: boolean)
         <TextBox label="Integer:" type="number" value={numberHolder} 
                  parse={s => parseInt(s) || new Error("Not an int")}/>
 */
-export class TextBox<T=string,Prop="value"> extends TextBase<TextInputAttributes<T, Prop>, T, Prop>
+export class TextBox<T=string,Prop extends string|symbol="value"> extends TextBase<TextInputAttributes<T, Prop>, T, Prop>
 {
   protected chooseType(p2: any) {
     p2.type || (p2.type = "text");
@@ -312,19 +312,19 @@ export class TextBox<T=string,Prop="value"> extends TextBase<TextInputAttributes
     parsing and possibly invalid input. If T is not `string` then 
     the `parse` property is required. Can have a label.
  */
-export class TextArea<T=string,Prop="value"> extends TextBase<TextAreaAttributes<T, Prop>, T, Prop>
+export class TextArea<T=string,Prop extends string|symbol="value"> extends TextBase<TextAreaAttributes<T, Prop>, T, Prop>
 {
   protected chooseType(p2: any) { return "textarea"; } 
 }
 
-/** A Date editor based on `<input type="date">`, with `props.value.get`
+/** A Date editor based on `<input type="date">`, with `props.model[props.prop]`
  *  interpreted in the UTC or local time according to the utc property
  *  (default: local time). Its user interface will vary between browsers.
  *  When the date is modified, the time is left unchanged, so a DateBox
  *  and a TimeBox can be used together to edit a single `Holder<Date>`.
  *  Can have a label.
  **/
-export function DateBox<Prop="value">(props: DateInputAttributes<Prop>) {
+export function DateBox<Prop extends string|symbol="value">(props: DateInputAttributes<Prop>) {
 /*  The type system seems broken in TypeScript v2.9 in case you combine
     union types with conditional types. The following test case demos the
     issue, but it seems fixed in the Playground (v3.1?). 
@@ -382,16 +382,16 @@ export function dateToString(d: Date|undefined, utc?: boolean): string|undefined
 }
 
 /** A time editor for Date values based on `<input type="time">`, with 
- *  the `props.value.get` interpreted in the UTC or local time zone 
+ *  the `props.model[props.prop]` interpreted in the UTC or local time zone 
  *  according to the value of the `utc` property (default: local time).
  *  Its user interface will vary between browsers. The date (non-time) 
  *  component is left unchanged, so TimeBox can be used together with 
- *  DateBox to edit a single instance of `Holder<Date>`. If `value.get`
+ *  DateBox to edit a single instance of `Holder<Date>`. If `model[prop]`
  *  is `undefined`, the value of the `day` property is used as the 
  *  default day when the user selects a time; if `day` is undefined then
  *  the current date is used as the default. Can have a label.
  */
-export function TimeBox<Prop="value">(props: TimeInputAttributes<Prop>) {
+export function TimeBox<Prop extends string|symbol="value">(props: TimeInputAttributes<Prop>) {
   var p2 = omit(props, ['utc']) as any;
   p2.type || (p2.type = "time");
   p2.parse = (input:string, oldValue: Date|undefined) => 
@@ -427,13 +427,13 @@ export function parse24hTime(value: string|undefined, day?: Date, utc?: boolean)
 }
 
 /** Wrapper for `<input type="checkbox">` based on `Holder<boolean>`.
- *  `props.value.get` is the current checkbox value and 
- *  `props.value.set()` is called when the checkbox changes. 
+ *  `props.model[props.prop]` gets the current checkbox value and 
+ *  `props.model[props.prop]` is assigned when the checkbox changes. 
  *  Can have a label. Example: 
  * 
- *      <CheckBox value={booleanHolder} label="My Checkbox"/>
+ *      <CheckBox model={booleanHolder} label="My Checkbox"/>
  */
-export function CheckBox<Prop="value">(props: InputAttributes<boolean, Prop>)
+export function CheckBox<Prop extends string|symbol="value">(props: InputAttributes<boolean, Prop>)
 {
   return renderInput(props, "checkbox", LabelAttrs, true, {
     checked: get(props),
@@ -444,19 +444,20 @@ export function CheckBox<Prop="value">(props: InputAttributes<boolean, Prop>)
 /** Wrapper for `<input type="radio">` based on `Holder<T>`.
  *  Can have a label. Example: 
  * 
- *      <Radio value={holder} is={true} label="Yes"/>
- *      <Radio value={holder} is={false} label="No"/>
- *      <Radio value={holder} is={null} label="Maybe"/>
+ *      <Radio model={holder} is={true} label="Yes"/>
+ *      <Radio model={holder} is={false} label="No"/>
+ *      <Radio model={holder} is={null} label="Maybe"/>
  * 
- *  Normally, props.value is a value that indicates which radio button
- *  in a group should be checked, and props.is specifies which value
- *  causes the current Radio to be checked. When a Radio is clicked, 
- *  it calls `props.value.set(props.is)`. An exception to this is if
- *  `props.is === undefined`; in that case the Radio treats props.value 
- *  as a boolean, and it calls `props.value.set(true)` when it is 
- *  checked and `props.value.set(false)` when it is unchecked.
+ *  Normally, `props.model[props.prop]` is a value that indicates which 
+ *  radio button in a group should be checked, and props.is specifies 
+ *  which value causes the current Radio to be checked. When a Radio
+ *  is clicked, it assigns `props.model[props.prop] = props.is`. An 
+ *  exception to this is if `props.is === undefined`; in that case the 
+ *  Radio treats `props.model[props.prop]` as a boolean, and it sets
+ *  `props.model[props.prop] = true` when it is checked and 
+ *  `props.model[props.prop] = false` when it is unchecked.
  */
-export function Radio<T,Prop="value">(props: RadioAttributes<T,Prop>)
+export function Radio<T,Prop extends string|symbol="value">(props: RadioAttributes<T,Prop>)
 {
   return renderInput(props, "radio", LabelAttrsAndIs, true, {
     checked: props.is !== undefined ? get(props) == props.is : !!get(props),
@@ -500,14 +501,14 @@ export function FileButton(p: FileButtonAttributes)
 
 /** Wrapper for `<input type="range">`, the horizontal slider element, 
  *  based on `Holder<T>`. Can have a label. Is an alias for Slider. */
-export function Range<Prop="value">(p: SliderAttributes<Prop>) { return Slider(p); }
+export function Range<Prop extends string|symbol="value">(p: SliderAttributes<Prop>) { return Slider(p); }
 
 /** Wrapper for `<input type="range">`, the horizontal slider element,
  *  based on `Holder<T>`. Can have a label. Example:
  * 
- *      <Slider value={numberHolder} min={-10} max={10} step={1}/>
+ *      <Slider model={numberHolder} min={-10} max={10} step={1}/>
  **/
-export function Slider<Prop="value">(p: SliderAttributes<Prop>)
+export function Slider<Prop extends string|symbol="value">(p: SliderAttributes<Prop>)
 {
   return renderInput(p, "range", LabelAttrs, false, {
     value: get(p),

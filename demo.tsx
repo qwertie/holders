@@ -35,25 +35,25 @@ class StatefulForm extends React.Component<{}, FormState>
   }
   render() {
     var hs = holdState(this as StatefulForm), date = hs('date');
-    var tmp = <TextBox p value={this.state} prop="code"/>;
+    var tmp = <TextBox p model={this.state} prop="code"/>;
     return (
       <fieldset>
         <legend>Additional input fields:</legend>
-        <CheckBox p value={hs('checkbox1')} label="I am prepared to see various form elements"/>
+        <CheckBox p model={hs('checkbox1')} label="I am prepared to see various form elements"/>
         { ...(!this.state.checkbox1 ? [] : [
           <Label p label="Date/time (UTC):">
-            <DateBox value={date} utc={true}/>
-            <TimeBox value={date} utc={true}/>
+            <DateBox model={date} utc={true}/>
+            <TimeBox model={date} utc={true}/>
           </Label>,
           <Label p label="Date/time (local):">
-            <DateBox value={date}/>
-            <TimeBox value={date}/>
+            <DateBox model={date}/>
+            <TimeBox model={date}/>
           </Label>,
-          <CheckBox p value={hs('checkbox2')} label="Checkbox:" labelAfter={false} />,
+          <CheckBox p model={hs('checkbox2')} label="Checkbox:" labelAfter={false} />,
           <Label p label="Happiness level:">
-            <Slider value={hs('happiness')} min={-10} max={10} step={1}
+            <Slider model={hs('happiness')} min={-10} max={10} step={1}
                     list="ticks" style={ {width:"12em"} }/>
-            <TextBox type="number" value={hs('happiness')} style={ {width:"4em"} }
+            <TextBox type="number" model={hs('happiness')} style={ {width:"4em"} }
                      parse={s => parseInt(s)}/>
             <datalist id="ticks">
               <option value="-10"/><option value="-5"/>
@@ -62,9 +62,9 @@ class StatefulForm extends React.Component<{}, FormState>
             </datalist>
           </Label>,
           <Label p label="Select fruit:">
-            <Radio value={hs('fruit')} is="apple"  label="Apple "/>
-            <Radio value={hs('fruit')} is="banana" label="Banana "/>
-            <Radio value={hs('fruit')} is="cherry" label="Cherry "/>
+            <Radio model={hs('fruit')} is="apple"  label="Apple "/>
+            <Radio model={hs('fruit')} is="banana" label="Banana "/>
+            <Radio model={hs('fruit')} is="cherry" label="Cherry "/>
           </Label>,
           <p><LabelSpan/>
             <Button onClick={() => alert(`Your ${this.state.fruit} is coming.`)}>
@@ -72,7 +72,7 @@ class StatefulForm extends React.Component<{}, FormState>
             </Button>
           </p>,
           <p><a href="http://loyc.net/les">LES</a> <a href="http://loyc.net/2017/lesv3-update.html">v3</a> code<br/>
-            <TextArea value={hs('code')} cols={50} rows={5}/>
+            <TextArea model={hs('code')} cols={50} rows={5}/>
           </p>
         ]) }
       </fieldset>);
@@ -101,15 +101,15 @@ class Model {
 // A simple form
 function PersonForm(m: Holders<Model>) {
   return <form>
-    <TextBox p label="Name:"     value={m.name} autoComplete="name"/>
-    <TextBox p label="Age:"      value={m.age}  type="number"
+    <TextBox p label="Name:"     model={m.name} autoComplete="name"/>
+    <TextBox p label="Age:"      model={m.age}  type="number"
              parse={s => parseFloat(s) || new Error("Invalid age")}/>
-    <TextBox p label="Address:"  value={m.address}  autoComplete="address-line1"/>
-    <TextBox p label="City:"     value={m.city}     autoComplete="address-level1"/>
-    <TextBox p label="Province:" value={m.province} autoComplete="address-level1"/>
-    <TextBox p label="Country:"  value={m.country}  autoComplete="country-name"/>
-    <TextBox p label="Favorite color:" value={m.color} type="color"/>
-    <CheckBox p label="Married"  value={m.married}/>
+    <TextBox p label="Address:"  model={m.address}  autoComplete="address-line1"/>
+    <TextBox p label="City:"     model={m.city}     autoComplete="address-level1"/>
+    <TextBox p label="Province:" model={m.province} autoComplete="address-level1"/>
+    <TextBox p label="Country:"  model={m.country}  autoComplete="country-name"/>
+    <TextBox p label="Favorite color:" model={m.color} type="color"/>
+    <CheckBox p label="Married"  model={m.married}/>
   </form>;
 }
 
@@ -150,7 +150,7 @@ class App extends React.Component<{model:Model}, Holders<Model> & {model:Holder<
     return <div>
       <PersonForm {...this.state}/>
       <p>JSON version (editable)</p>
-      <TextArea value={this.state.model} rows={10} cols={50}
+      <TextArea<Model> model={this.state.model} rows={10} cols={50}
                 stringify={m => JSON.stringify(m,undefined,"  ")} 
                 parse={ (input, oldVal) => ({...oldVal, ...JSON.parse(input)}) }/>
       <StatefulForm/>
