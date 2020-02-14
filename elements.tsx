@@ -210,7 +210,7 @@ const LabelAttrsAndParse = LabelAttrs.concat('parse', 'stringify');
 const LabelAttrsAndIs = LabelAttrs.concat('is');
 
 // Base class of TextBox and TextArea
-abstract class TextBase<T, Props extends TextAttributesBase<T>> 
+abstract class TextBase<T extends {}, Props extends TextAttributesBase<T>> 
        extends Component<Props, {tempText?:string}>
 {
   protected abstract chooseType(p2: any): string;

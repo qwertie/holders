@@ -92,7 +92,7 @@ export function holdProps<T, Props extends keyof T>
 
 /** Given an object, constructs a new object with a Holder wrapping each 
  *  enumerable property of the original object. */
-export function holdAllProps<T>(model: T, onChange: (<A extends keyof T>(attr: A, newValue: T[A]) => void|boolean) | undefined): Holders<T>
+export function holdAllProps<T extends {}>(model: T, onChange: (<A extends keyof T>(attr: A, newValue: T[A]) => void|boolean) | undefined): Holders<T>
 {
   return holdProps(model, Object.keys(model) as (keyof T)[], onChange);
 }

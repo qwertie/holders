@@ -6,6 +6,7 @@ import { hold } from './hold';
 
 /* @jsx h */
 var h = React.createElement;
+var createElement = React.createElement; // the code hasn't changed, but now TypeScript is calling createElement
 
 //////////////////////////////////////////////////////////////////////////
 // Demo 1: A form that connects its own state to form controls
