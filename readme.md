@@ -31,6 +31,7 @@ Features
 - UMD modules targeting ES5 (old browsers supported)
 - Minified size: 0.9K for hold.min.js, 4.9K for elements.min.js
 - Includes d.ts files (written in TypeScript)
+- Elements are expected to be compatible with Preact as well as React
 
 To Learn More
 -------------

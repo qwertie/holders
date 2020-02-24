@@ -141,6 +141,9 @@ export interface TextAttributesBase<T> extends InputAttributes<T> {
   stringify?(t:T): string;
 }
 
+/** TypeScript 3.x can no longer infer T when TextInputAttributes<T> is used. Using this instead. */
+export type TextInputAttributesWorkaround<T> = TextInputAttributes_<T> & {parse?: Parse<T>, stringify?: (t:T) => string};
+
 /** Attributes supported by TextBox and its underlying `<input>` element. */
 export type TextInputAttributes<T> = TextInputAttributes_<T> & ConvertsToString<T>;
 interface TextInputAttributes_<T> extends TextAttributesBase<T> {
@@ -188,6 +191,9 @@ export interface TimeInputAttributes extends DateInputAttributes
    *  and the `value` property was undefined. (default: today's date) */
   day?: Date;
 }
+
+/** TypeScript 3.x can no longer infer T when TextAreaAttributes<T> is used. Using this instead. */
+export type TextAreaAttributesWorkaround<T> = TextAreaAttributes_<T> & { parse?: Parse<T>, stringify?: (t:T) => string };
 
 /** Attributes supported for TextArea and its underlying `<textarea>` element. */
 export type TextAreaAttributes<T> = TextAreaAttributes_<T> & ConvertsToString<T>;
@@ -290,7 +296,7 @@ function maybeWrapInLabel(p: LabelProps, el: JSX.Element, preferAfter?: boolean)
         <TextBox label="Integer:" type="number" value={numberHolder} 
                  parse={s => parseInt(s) || new Error("Not an int")}/>
 */
-export class TextBox<T> extends TextBase<T, TextInputAttributes<T>>
+export class TextBox<T> extends TextBase<T, TextInputAttributesWorkaround<T>>
 {
   protected chooseType(p2: any) {
     p2.type || (p2.type = "text");
@@ -302,7 +308,7 @@ export class TextBox<T> extends TextBase<T, TextInputAttributes<T>>
     parsing and possibly invalid input. If T is not `string` then 
     the `parse` property is required. Can have a label.
  */
-export class TextArea<T> extends TextBase<T, TextAreaAttributes<T>>
+export class TextArea<T> extends TextBase<T, TextAreaAttributesWorkaround<T>>
 {
   protected chooseType(p2: any) { return "textarea"; } 
 }

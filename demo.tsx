@@ -72,7 +72,7 @@ class StatefulForm extends React.Component<{}, FormState>
             </Button>
           </p>,
           <p><a href="http://loyc.net/les">LES</a> <a href="http://loyc.net/2017/lesv3-update.html">v3</a> code<br/>
-            <TextArea value={hs('code')} cols={50} rows={5}/>
+            <TextArea<string> value={hs('code')} cols={50} rows={5}/>
           </p>
         ]}
       </fieldset>);
@@ -118,10 +118,7 @@ class App extends React.Component<{model:Model}, Holders<Model> & {model:Holder<
   constructor(props: {model:Model}) {
     super(props);
     var h: Holders<Model> = 
-      holdAllProps(props.model, (_, __) => {
-        this.forceUpdate(); // refresh!
-        return true;
-      });
+      holdAllProps(props.model, () => { this.forceUpdate(); });
     this.state = {...h, 
       model: hold(props, "model", (_, newModel) => {
         // Model was changed via TextArea. Update the model.
