@@ -1,8 +1,8 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import {holdState, holdAllProps, Holder, Holders, TextBox, TextArea, Label, LabelSpan,
-        CheckBox, Radio, Button, Slider, TimeBox, DateBox} from './elements';
-import { hold } from './hold';
+import {hold, holdState, holdAllProps, Holder, Holders, 
+        TextBox, TextArea, Label, LabelSpan, CheckBox,
+        Radio, Button, Slider, TimeBox, DateBox} from './elements';
 
 /* @jsx h */
 var h = React.createElement;

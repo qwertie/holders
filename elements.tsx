@@ -1,6 +1,6 @@
 import {createElement, Component, HTMLAttributes, ComponentElement} from "react";
-import {Holder} from './hold';
-export * from './hold';
+import {Holder} from './holders';
+export * from './holders';
 
 /* @jsx h */
 var h = createElement;

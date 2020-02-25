@@ -1,13 +1,13 @@
 {
   "name": "holders",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "A tiny library to help you construct React user interfaces quickly & easily",
   "main": "elements",
   "typings": "elements",
   "files": [
-    "hold.js",
-    "hold.min.js",
-    "hold.d.ts",
+    "holders.js",
+    "holders.min.js",
+    "holders.d.ts",
     "elements.js",
     "elements.min.js",
     "elements.d.ts",
@@ -18,7 +18,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc && npm run minify",
-    "minify": "uglifyjs -cm -o hold.min.js hold.js && uglifyjs -cm -o elements.min.js elements.js",
+    "minify": "uglifyjs -cm -o holders.min.js holders.js && uglifyjs -cm -o elements.min.js elements.js",
     "demo": "parcel demo.html",
     "prepare": "npm run build"
   },
@@ -44,7 +44,7 @@
     "@types/react": "^16.4.11",
     "react": "^16.4.2",
     "react-dom": "^16.4.2",
-    "typescript": "^3.7.5",
+    "typescript": "~3.6.5",
     "uglify-js": "^3.4.7"
   },
   "dependencies": {},
