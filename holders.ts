@@ -19,19 +19,20 @@ export class ValueHolder<T> implements Holder<T> {
   /** Initializes the ValueHolder. The onChanging handler is called before the change is
    *  actually made. It can return `undefined` to allow the proposed value to be stored,
    *  or it can return something else to cause that to be stored. */
-  constructor(public value: T, public onChanging?: (newValue: T, holder: Holder<T>) => T|void) {}
+  constructor(public value: T, public onChanging?: (newValue: T, oldValue: T, holder: Holder<T>) => T|void) {}
   get get() {
     return this.value;
   }
   set(newValue: T) {
+    let oldValue = this.value;
+    this.value = newValue;
     if (this.onChanging) {
-      let result = this.onChanging(newValue, this);
+      let result = this.onChanging(newValue, oldValue, this);
       if (result !== undefined) {
         this.value = result as T;
         return;
       }
     }
-    this.value = newValue;
   }
 }
 
