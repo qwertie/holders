@@ -37,21 +37,15 @@ form p, form p > label:only-child {
   display: flex;
   flex-flow: row wrap;
   align-items: center; /* vertical alignment */
-}
-form p > :first-child, form p > label:only-child > :first-child {
-  flex: 1;
-  min-width: 10em;
-}
-form p > * ~ *, form p > label:only-child > * ~ * {
-  flex: 2;
-  min-width: 15em;
+  width: 100%;
 }
 .labelspan {
-  margin-top: 0.2em;
-  margin-bottom: 0.2em;
+  flex: 1 0;
+  min-width: 10em;
 }
-.labelspan, .labelspan ~ .inputspan {
-  display: block;
+.labelspan ~ .inputspan, .labelspan ~ label {
+  flex: 2 0;
+  min-width: 15em;
 }
 textarea, input[type="text"] {
   width: 100%;
@@ -70,8 +64,9 @@ textarea, input[type="text"] {
   overflow: auto;
   min-width: 67%;
 }*/
-textarea, input[type="text"], input[type="number"], input[type="date"], input[type="time"] {
-  vertical-align: middle;
+.labelspan {
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
 }
 
 /* Skinning of controls (input/textarea/button) ****************************************/

@@ -56,6 +56,28 @@ export var DefaultLabelSpan = { class: "labelspan", style: undefined as React.CS
  *      </label>
  *  
  *  If you add a `p` property, the above HTML is also wrapped in a `<p>` element. 
+ *  This works well with CSS such as the following, which displays the input elements 
+ *  either on the same line or the next line after the labelspan, depending on the
+ *  width available:
+ * 
+ *  form p, form p > label:only-child {
+ *    display: flex;
+ *    flex-flow: row wrap;
+ *    align-items: center;
+ *    width: 100%;
+ *  }
+ *  .labelspan {
+ *    flex: 1 0;
+ *    min-width: 10em;
+ *  }
+ *  .labelspan ~ .inputspan {
+ *    flex: 2 0;
+ *    min-width: 15em;
+ *  }
+ *  textarea, input[type="text"] {
+ *    width: 100%;
+ *  }
+ *  
  */
 export var DefaultInputSpan = { class: "inputspan", style: undefined as React.CSSProperties|undefined };
 

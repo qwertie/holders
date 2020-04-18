@@ -149,7 +149,7 @@ class App extends React.Component<{model:Model}, Holders<Model> & {model:Holder<
     return <div>
       <PersonForm {...this.state}/>
       <TextArea label="JSON version (editable)"
-                value={this.state.model} rows={10} cols={40}
+                value={this.state.model} rows={11} cols={40}
                 stringify={m => JSON.stringify(m,undefined,"  ")} 
                 parse={ (input, oldVal) => ({...oldVal, ...JSON.parse(input)}) }/>
       <StatefulForm/>
