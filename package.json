@@ -32,7 +32,8 @@
     "reactive",
     "model",
     "state management",
-    "data flow"
+    "data flow",
+    "forms"
   ],
   "author": "David Piepgrass",
   "license": "ISC",
@@ -42,7 +43,7 @@
   "homepage": "https://github.com/qwertie/holders#readme",
   "devDependencies": {
     "@types/react": "^16.4.11",
-    "react": "^16.4.2",
+    "react": "^16.13.1",
     "react-dom": "^16.4.2",
     "typescript": "~3.6.5",
     "uglify-js": "^3.4.7"

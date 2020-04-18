@@ -9,7 +9,44 @@ var h = React.createElement;
 var createElement = React.createElement; // the code hasn't changed, but now TypeScript is calling createElement
 
 //////////////////////////////////////////////////////////////////////////
-// Demo 1: A form that connects its own state to form controls
+// Demo 1: Form with separate model (App class connects the two together)
+//////////////////////////////////////////////////////////////////////////
+
+// Note: When using holdAllProps(model), unspecified values must be 
+//       explicitly set to undefined so the function knows they exist.
+class Model {
+  name: string = "";
+  age?: number = undefined;
+  address: string = "";
+  city: string = "";
+  province: string = "";
+  country: string = "";
+  date?: Date = undefined;
+  color: string = "#bbff44";
+  married: boolean = false;
+  haveChildren: boolean = false;
+}
+
+// A simple form
+function PersonForm(m: Holders<Model>) {
+  return <form>
+    <TextBox p label="Name:"     value={m.name} autoComplete="name" placeholder="First Last"/>
+    <TextBox p label="Age:"      value={m.age}  type="number"
+             parse={s => parseFloat(s) || new Error("Invalid age")}/>
+    <TextBox p label="Address:"  value={m.address}  autoComplete="address-line1"/>
+    <TextBox p label="City:"     value={m.city}     autoComplete="address-level1"/>
+    <TextBox p label="Province:" value={m.province} autoComplete="address-level1"/>
+    <TextBox p label="Country:"  value={m.country}  autoComplete="country-name"/>
+    <p>
+      <LabelSpan><CheckBox label="Married"  value={m.married}  labelAfter={true}/></LabelSpan>
+      {m.married.get ? <CheckBox label="With Children" value={m.haveChildren}/> : undefined}
+    </p>
+    <TextBox p label="Favorite color:" value={m.color} type="color"/>
+  </form>;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Demo 2: A form that connects its own state to form controls
 //////////////////////////////////////////////////////////////////////////
 
 interface FormState {
@@ -86,37 +123,8 @@ class StatefulForm extends React.Component<{}, FormState>
 }
 
 //////////////////////////////////////////////////////////////////////////
-// Demo 2: Form with separate model (App class connects the two together)
+// Top-level App
 //////////////////////////////////////////////////////////////////////////
-
-// Note: When using holdAllProps(model), unspecified values must be 
-//       explicitly set to undefined so the function knows they exist.
-class Model {
-  name: string = "";
-  age?: number = undefined;
-  address: string = "";
-  city: string = "";
-  province: string = "";
-  country: string = "";
-  date?: Date = undefined;
-  color: string = "#bbff44";
-  married: boolean = false;
-}
-
-// A simple form
-function PersonForm(m: Holders<Model>) {
-  return <form>
-    <TextBox p label="Name:"     value={m.name} autoComplete="name" placeholder="First Last"/>
-    <TextBox p label="Age:"      value={m.age}  type="number"
-             parse={s => parseFloat(s) || new Error("Invalid age")}/>
-    <TextBox p label="Address:"  value={m.address}  autoComplete="address-line1"/>
-    <TextBox p label="City:"     value={m.city}     autoComplete="address-level1"/>
-    <TextBox p label="Province:" value={m.province} autoComplete="address-level1"/>
-    <TextBox p label="Country:"  value={m.country}  autoComplete="country-name"/>
-    <CheckBox p label="Married"  value={m.married}  labelAfter={true}/>
-    <TextBox p label="Favorite color:" value={m.color} type="color"/>
-  </form>;
-}
 
 class App extends React.Component<{model:Model}, Holders<Model> & {model:Holder<Model>}>
 {
