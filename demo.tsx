@@ -1,6 +1,8 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import {holdProp, holdState, holdAllProps, Holder, Holders, 
+
+// *** When using the npm package, import 'holders' or 'holders/elements' instead! ***
+import {holdProp, holdState, holdProps, holdAllProps, Holder, Holders,
         TextBox, TextArea, Label, LabelSpan, CheckBox,
         Radio, Button, Slider, TimeBox, DateBox} from './elements';
 
@@ -134,12 +136,12 @@ class App extends React.Component<{model:Model}, Holders<Model> & {model:Holder<
       holdAllProps(props.model, () => { this.forceUpdate(); });
     this.state = {
       ...h, 
-      model: holdProp(props, "model", newModel => {
+      model: holdProp(props, "model", function(newModel) {
         // Model was changed via TextArea. Update the model.
         Object.assign(props.model, newModel);
         this.forceUpdate();
         return props.model; // prevent the Holder from assigning a read-only prop
-      }, true)
+      }, true, this)
     };
   }
   render() {

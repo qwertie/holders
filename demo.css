@@ -15,8 +15,8 @@ a:hover { text-decoration: underline; }
 
 .labelspan { /* the default class for label text */
   display: inline-block;
-  width: 14em;
-  max-width: 33%;
+  min-width: 10em;
+  width: 33%;
 }
 
 form, fieldset {

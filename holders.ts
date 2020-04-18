@@ -23,33 +23,35 @@ export type Holders<Model> = {
  * 
  *  Note: TypeScript does not require you to accept all four parameters.
  */
-export type OnChanging<T, Name> = 
-  (newValue: T, oldValue: T, attr: Name, holder: Holder<T>) => T|void;
+export type OnChanging<This, T, Name> = 
+  (this: This, newValue: T, oldValue: T, attr: Name) => T|void;
 
 // Save memory by storing the `delayedWrite` bit on the prototype, not each instance
 let EagerValueHolder = NewValueHolderClass(false);
 let DelayedValueHolder = NewValueHolderClass(true);
 
 function NewValueHolderClass(delayedWrite: boolean)
-  : { new(value: any, onChanging?: OnChanging<any, "value">): Holder<any> }
+  : { new(value: any, onChanging?: OnChanging<Holder<any>, any, "value">, onChangingThis?: any): Holder<any> }
 {
   class ValueHolder<T> implements Holder<T>
   {
-    delayedWrite() { return delayedWrite; }
+    onChangingThis?: any;
     /** Initializes the ValueHolder. */
-    constructor(protected value: T, protected onChanging?: OnChanging<T, "value">) {
+    constructor(protected value: T, protected onChanging?: OnChanging<Holder<T>, T, "value">, onChangingThis?: any) {
       this.value = value;
       this.onChanging = onChanging;
+      if (onChangingThis)
+        this.onChangingThis = onChangingThis;
     }
     get get() {
       return this.value;
     }
     set(newValue: T) {
-      let oldValue = this.value, delayedWrite = this.delayedWrite();
+      let oldValue = this.value;
       if (this.onChanging) {
         if (!delayedWrite)
           this.value = newValue;
-        let result = this.onChanging(newValue, oldValue, "value", this);
+        let result = this.onChanging.call(this.onChangingThis || this, newValue, oldValue, "value");
         if (result !== undefined)
           newValue = result;
       }
@@ -70,28 +72,34 @@ function NewValueHolderClass(delayedWrite: boolean)
  *  @param onChanging Change handler (see documentation of OnChanging)
  *  @param delayedWrite If true, changes are not written immediately but
  *         only after `onChanging` is called, and only if the new value is different (!==).
+ *  @param onChangingThis The value of `this` inside `onChanging`; if this parameter
+ *         is missing/undefined, `this` will be the Holder itself.
  */
-export function holdValue<T>(initialValue: T, 
-  onChanging?: OnChanging<T, "value">,
-  delayedWrite?: boolean): Holder<T>
+export function holdValue<T>(initialValue: T, onChanging?: OnChanging<Holder<T>, T, "value">, delayedWrite?: boolean): Holder<T>
+export function holdValue<T, This>(initialValue: T, onChanging?: OnChanging<Holder<T>, T, "value">, delayedWrite?: boolean, onChangingThis?: This): Holder<T>
+export function holdValue<T, This>(initialValue: T, 
+  onChanging?: OnChanging<Holder<T>, T, "value">,
+  delayedWrite?: boolean,
+  onChangingThis?: This): Holder<T>
 {
   return (delayedWrite
-    ? new DelayedValueHolder(initialValue, onChanging) 
-    : new EagerValueHolder(initialValue, onChanging));
+    ? new DelayedValueHolder(initialValue, onChanging, onChangingThis) 
+    : new EagerValueHolder(initialValue, onChanging, onChangingThis));
 }
 
 interface PropHolder_<M, P extends keyof M> {
   new(attr: P): Holder<M[P]>
 }
-function NewPropHolderClass<M, Props extends keyof M>(
-  model: M, onChange?: OnChanging<M[Props], Props>, delayedWrite?: boolean)
+function NewPropHolderClass<M, Props extends keyof M, This>(
+  model: M,
+  onChange: OnChanging<This, M[Props], Props>|undefined,
+  delayedWrite: boolean|undefined,
+  onChangeThis: This)
   : PropHolder_<M, Props>
 {
   class PropHolder implements Holder<M[Props]>
   {
-    model() { return model; }
-    onChange() { return onChange; }
-    delayedWrite() { return delayedWrite; }
+    model() { return model; } // to help users debug
     
     constructor(public attr: Props) { }
     
@@ -99,18 +107,18 @@ function NewPropHolderClass<M, Props extends keyof M>(
       return this.model()[this.attr];
     }
     set(newValue: M[Props]) {
-      let oldValue = this.get, delayedWrite = this.delayedWrite(), onChange = this.onChange();
+      let oldValue = this.get;
       if (onChange) {
         if (!delayedWrite)
-          this.model()[this.attr] = newValue;
-        let result = onChange(newValue, oldValue, this.attr, this);
+          model[this.attr] = newValue;
+        let result = onChange.call(onChangeThis, newValue, oldValue, this.attr);
         if (result !== undefined)
           newValue = result;
         else if (!delayedWrite)
           return;
       }
       if (this.get !== newValue)
-        this.model()[this.attr] = newValue;
+        model[this.attr] = newValue;
     }
   }
   return PropHolder;
@@ -134,22 +142,25 @@ function NewPropHolderClass<M, Props extends keyof M>(
  * 
  *  @param model An object that contains a property you want to bind.
  *  @param attr  The name of a property of `model` that you want to bind.
- *  @param onChanging A function that will be called later, when the return
- *         value's `val` property is changed. The first argument is the
- *         value of `attr` (usually a string), and the second argument is
- *         the value assigned to the Holder's val. `onChanging` can change
- *         the value to be assigned by returning the desired value, or it
- *         can return `undefined` to accept the default change behavior, 
- *         which is `model[attr] = newValue`.
- *  @param delayedWrite If true, changes are not written immediately but
- *         only after `onChanging` is called, and only if the new value is
- *         !== model[attr].
+ *  @param onChanging A function that will be called later, when `set()` is called on
+ *         the returned holder. `onChanging` can change the value to be assigned by
+ *         returning the desired value, or it can return `undefined` to accept the
+ *         default change behavior, which is `model[attr] = newValue`.
+ *         See the documentation of `OnChanging` for details.
+ *  @param delayedWrite If true, changes are not written immediately but only after
+ *         `onChanging` is called, and only if the new value is !== model[attr].
+ *  @param onChangingThis The value of `this` inside `onChanging`; if this parameter
+ *         is missing/undefined, `this` will be `model`.
  */
-export function holdProp<M, Attr extends keyof M>(model: M, attr: Attr, 
-  onChanging?: OnChanging<M[Attr], Attr> | undefined,
-  delayedWrite?: boolean): Holder<M[Attr]>
+export function holdProp<M, Attr extends keyof M>      (model: M, attr: Attr, onChanging?: OnChanging<M, M[Attr], Attr> | undefined, delayedWrite?: boolean): Holder<M[Attr]>;
+export function holdProp<M, Attr extends keyof M, This>(model: M, attr: Attr, onChanging?: OnChanging<This, M[Attr], Attr> | undefined, delayedWrite?: boolean, onChangingThis?: This): Holder<M[Attr]>;
+export function holdProp<M, Attr extends keyof M, This>(model: M, attr: Attr, 
+  onChanging?: OnChanging<This, M[Attr], Attr> | undefined,
+  delayedWrite?: boolean,
+  onChangingThis?: This
+  ): Holder<M[Attr]>
 {
-  return new (NewPropHolderClass(model, onChanging, delayedWrite))(attr);
+  return new (NewPropHolderClass(model, onChanging, delayedWrite, onChangingThis || model as any))(attr);
 }
 
 /**
@@ -189,13 +200,11 @@ interface StateHolder_<C extends Component<State>, Attrs extends keyof State, St
 }
 
 function NewStateHolderClass<C extends Component<State>, Attrs extends keyof State, State = C["state"]>
-  (component: C, onChange?: OnChanging<State[Attrs], Attrs>, delayedWrite?: boolean): StateHolder_<C, Attrs>
+  (component: C, onChange?: OnChanging<C, State[Attrs], Attrs>, delayedWrite?: boolean): StateHolder_<C, Attrs>
 {
   class StateHolder implements Holder<State[Attrs]>
   {
-    component() { return component; }
-    onChange() { return onChange; }
-    delayedWrite() { return delayedWrite; }
+    component() { return component; } // debugging helper
     
     constructor(public readonly attr: Attrs) { }
     
@@ -206,11 +215,11 @@ function NewStateHolderClass<C extends Component<State>, Attrs extends keyof Sta
       return this.component().setState({ [this.attr]: newValue });
     }
     set(newValue: State[Attrs]) {
-      let oldValue = this.get, delayedWrite = this.delayedWrite(), onChange = this.onChange();
+      let oldValue = this.get;
       if (onChange) {
         if (!delayedWrite)
           this.setState(newValue);
-        let result = onChange(newValue, oldValue, this.attr, this);
+        let result = onChange.call(component, newValue, oldValue, this.attr);
         if (result !== undefined)
           newValue = result;
         else if (!delayedWrite)
@@ -240,7 +249,7 @@ function NewStateHolderClass<C extends Component<State>, Attrs extends keyof Sta
  *     }
  */
 export function holdStates<C extends Component<State>, Attr extends keyof State, State=C["state"]>
-  (component: C, stateNames: Attr[], onChange?: OnChanging<State[Attr], Attr>, delayedWrite?: boolean):
+  (component: C, stateNames: Attr[], onChange?: OnChanging<C, State[Attr], Attr>, delayedWrite?: boolean):
   { [A in Attr]-?: Holder<State[A]> }
 {
   let HolderClass = NewStateHolderClass(component, onChange, delayedWrite);
@@ -248,22 +257,46 @@ export function holdStates<C extends Component<State>, Attr extends keyof State,
 }
 
 /** Given an object and a list of property names, constructs a new 
- *  object with a Holder wrapping each property of the object. */
-export function holdProps<T, Props extends keyof T>
-  (model: T, propNames: Props[], onChange?: OnChanging<T[Props], Props>, delayedWrite?: boolean):
-  { [P in Props]-?: Holder<T[P]> }
+ *  object with a Holder wrapping each property of the object.
+ * 
+ *  @param model An object that contains properties you want to wrap in holders.
+ *  @param propNames Names of properties of `model` that you want holders for.
+ *  @param onChanging A function that will be called later, when `set()` is called on
+ *         any of the holders. `onChanging` can change the value to be assigned by
+ *         returning the desired value, or it can return `undefined` to accept the
+ *         default change behavior, which is `model[attr] = newValue` (where `attr` 
+ *         is an element of `propNames` and is the third parameter to `onChanging`.)
+ *         See the documentation of `OnChanging` for details.
+ *  @param delayedWrite If true, changes are not written immediately but only after
+ *         `onChanging` is called, and only if the new value is !== model[attr].
+ *  @param onChangingThis The value of `this` inside `onChanging`; if this parameter
+ *         is missing/undefined, `this` will be `model`.
+ **/
+export function holdProps<M, Props extends keyof M>      (model: M, propNames: Props[], onChange?: OnChanging<M, M[Props], Props>, delayedWrite?: boolean) : { [P in Props]-?: Holder<M[P]> };
+export function holdProps<M, Props extends keyof M, This>(model: M, propNames: Props[], onChange?: OnChanging<This, M[Props], Props>, delayedWrite?: boolean, onChangeThis?: This) : { [P in Props]-?: Holder<M[P]> };
+export function holdProps<M, Props extends keyof M, This>
+  (model: M,
+   propNames: Props[],
+   onChange?: OnChanging<M, M[Props], Props>,
+   delayedWrite?: boolean,
+   onChangeThis?: This):
+  { [P in Props]-?: Holder<M[P]> }
 {
-  let HolderClass = NewPropHolderClass(model, onChange, delayedWrite);
-  return propNames.reduce((out, k) => (out[k] = new HolderClass(k), out), {} as { [P in Props]-?: Holder<T[P]> });
+  let HolderClass = NewPropHolderClass(model, onChange, delayedWrite, onChangeThis || model as any);
+  return propNames.reduce((out, k) => (out[k] = new HolderClass(k), out), {} as { [P in Props]-?: Holder<M[P]> });
 }
 
 /** Given an object, constructs a new object with a Holder wrapping each 
- *  enumerable property of the original object. */
-export function holdAllProps<T extends {}>
-  (model: T,
-   onChange?: (<A extends keyof T> (newValue: T[A], oldValue: T[A], attr: A, holder: Holder<T[A]>) => T[A]|void),
-   delayedWrite?: boolean
-  ): Holders<T>
+ *  enumerable property of the original object. This function is the same
+ *  as `holdProps` except that the `propNames` parameter is left out. */
+export function holdAllProps<M extends {}, This>(model: M, onChange?: (<A extends keyof M> (this: M, newValue: M[A], oldValue: M[A], attr: A) => M[A]|void), delayedWrite?: boolean): Holders<M>;
+export function holdAllProps<M extends {}, This>(model: M, onChange?: (<A extends keyof M> (this: This, newValue: M[A], oldValue: M[A], attr: A) => M[A]|void), delayedWrite?: boolean, onChangeThis?: This): Holders<M>;
+export function holdAllProps<M extends {}, This>
+  (model: M,
+   onChange?: (<A extends keyof M> (this: This, newValue: M[A], oldValue: M[A], attr: A) => M[A]|void),
+   delayedWrite?: boolean,
+   onChangeThis?: This
+  ): Holders<M>
 {
-  return holdProps(model, Object.keys(model) as (keyof T)[], onChange, delayedWrite);
+  return holdProps(model, Object.keys(model) as (keyof M)[], onChange, delayedWrite, onChangeThis || model as any);
 }
