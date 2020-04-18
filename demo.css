@@ -3,26 +3,100 @@
 }
 body {
   font-family: "Helvetica", sans-serif;
-  padding: min(1em, 1%);
+  margin: 0;
+  padding: 0.5%;
 }
 .main {
   margin-right: auto;
   margin-left: auto; /* centered */
   max-width: 600px;
+  border: 1px solid #ccf;
+  padding: 1em;
 }
 a      { text-decoration: none; }
 a:hover { text-decoration: underline; }
-
-.labelspan { /* the default class for label text */
-  display: inline-block;
-  min-width: 10em;
-  width: 33%;
+h1 {
+  border-bottom: 10px solid #bdf;
 }
-
 form, fieldset {
   margin-top: 10px;
 }
 
+/* Form layout **************************************************************************
+
+   The styling here allows the form to reformat itself when the width is small.
+   It's best to avoid media queries like `@media screen and (max-width: 300px)`
+   for this, because media queries are not based on how much space you actually 
+   have available. If the screen itself is huge but the form is squashed into 
+   250 pixels (e.g. because the form is inside a small modal), it would be wrong
+   to use the layout designed for a big screen in that context.
+
+   And yes, this works in Internet Explorer 11.
+*/
+form p, form p > label:only-child {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center; /* vertical alignment */
+}
+form p > :first-child, form p > label:only-child > :first-child {
+  flex: 1;
+  min-width: 10em;
+}
+form p > * ~ *, form p > label:only-child > * ~ * {
+  flex: 2;
+  min-width: 15em;
+}
+.labelspan {
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+.labelspan, .labelspan ~ .inputspan {
+  display: block;
+}
+textarea, input[type="text"] {
+  width: 100%;
+}
+/*.labelspan {
+  clear: left;
+  float: left;
+
+  display: block;
+  overflow: auto;
+  min-width: 33%;
+  width: 10em;
+}
+.labelspan ~ .inputspan {
+  display: block;
+  overflow: auto;
+  min-width: 67%;
+}*/
+textarea, input[type="text"], input[type="number"], input[type="date"], input[type="time"] {
+  vertical-align: middle;
+}
+
+/* Skinning of controls (input/textarea/button) ****************************************/
+
+input[type="text"], input[type="range"] {
+  margin-right: 1%;
+  vertical-align: middle; /* fix alignment between TextBox and Slider in Chrome, FF, IE */
+}
+input[type="date"], input[type="time"] {
+  width: 11em /* Chrome needs the most space */
+}
+textarea, input[type="text"], input[type="number"], input[type="date"], input[type="time"] {
+  padding: .5em;
+  display: inline-block;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  box-shadow: inset 0 1px 3px #ddd;
+}
+input[type=checkbox], input[type=radio] {
+  transform: scale(1.4);
+  margin-right: 0.5em;
+}
+input[type="range"] {
+  display: inline-block;
+}
 button {
   display: inline-block;
   border: 1px solid #05B;
@@ -35,32 +109,4 @@ button {
   line-height: 1;
   cursor: pointer;
   text-align: center;
-}
-
-/* Styling of input elements and textarea **********************************************/
-
-input[type="text"], input[type="range"] {
-  margin-right: 1%;
-  vertical-align: middle; /* fix alignment between TextBox and Slider in Chrome, FF, IE */
-}
-textarea, input[type="text"], input[type="number"] {
-  width: 65%;
-}
-input[type="date"], input[type="time"] {
-  width: 11em /* Chrome needs the most space */
-}
-textarea, input[type="text"], input[type="number"], input[type="date"], input[type="time"] {
-  padding: .5em;
-  display: inline-block;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  box-shadow: inset 0 1px 3px #ddd;
-  vertical-align: middle;
-}
-input[type=checkbox], input[type=radio] {
-  transform: scale(1.4);
-  margin-right: 0.5em;
-}
-input[type="range"] {
-  display: inline-block;
 }

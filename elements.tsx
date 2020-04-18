@@ -19,38 +19,80 @@ export interface LabelProps {
   /** If true, the label text comes after the (child) element instead of before 
    *  (and the default class/style, if any, is not applied) */
   labelAfter?: boolean;
+  /** If a label is attached to an input elements, the input element is normally wrapped
+   *  in a `<span class="inputspan">` element. Setting `inputspan={false}` will remove
+   *  that span element. */
+  inputspan?: boolean;
 }
 
-/** Default class and style of LabelSpan (Label's text span) when 
- *  labelClass, labelStyle and labelAfter props are not specified. */
-export var DefaultLabelSpan = { class: "labelspan", style: undefined };
+/** Any elements in this module that have a label will use these settings when you have
+ *  not provided labelClass, labelStyle or labelAfter props. If any of these props are
+ *  specified, the class and style specified here are not used. This is also the default 
+ *  class and style of the LabelSpan component in this module (again, these settings will 
+ *  not be used if labelClass, labelStyle or labelAfter props are used.)
+ */
+export var DefaultLabelSpan = { class: "labelspan", style: undefined as React.CSSProperties|undefined };
+
+/** When you are using an element in this module and you provide a "label" setting,
+ *  the input element (or textarea element, or whatever) will be wrapped in a <span>
+ *  with the class and style specified here. For example, if you just write
+ *  
+ *      <TextBox value={m.name} autoComplete="name"/>
+ *  
+ *  it produces HTML like
+ *  
+ *      <input type="text" value="" autocomplete="name"> (with events attached)
+ * 
+ *  but if you add a label like
+ *  
+ *      <TextBox label="Name:" value={m.name} autoComplete="name"/>
+ * 
+ *  then in addition to a label element, new spans appear based on the settings in
+ *  `DefaultLabelSpan` and `DefaultInputSpan`:
+ * 
+ *      <label>
+ *        <span class="labelspan">Name:</span>
+ *        <span class="inputspan"><input type="text" value="" autocomplete="name"></span>
+ *      </label>
+ *  
+ *  If you add a `p` property, the above HTML is also wrapped in a `<p>` element. 
+ */
+export var DefaultInputSpan = { class: "inputspan", style: undefined as React.CSSProperties|undefined };
 
 /** Wraps elements or components in a `<label>` element (and optional `<p>` element),
- *  for example, `<Label label="Hello"><TextBox value={x}/></Label>` becomes
+ *  for example, `<Label label="Hello"><TextBox value={x}/></Label>` is rendered like
  *  
  *      <label>
- *        <span style={DefaultLabel.style} class={DefaultLabel.class}>Hello</span>
- *        <TextBox value={x}/>
+ *        <span style={DefaultLabelSpan.style} class={DefaultLabelSpan.class}>Hello</span>
+ *        <span style={DefaultInputSpan.style} class={DefaultInputSpan.class}>
+ *          <TextBox value={x}/>
+ *        </span>
  *      </label>
+ *  
+ *  It is possible to suppress the second `<span>` (leaving a bare TextBox) with a
+ *  `labelspan={false}` property. It can be suppressed globally by setting both 
+ *  `DefaultInputSpan.class = undefined` and `DefaultInputSpan.style = undefined`.
  */
-export function Label(p: LabelProps & HTMLAttributes<HTMLElement>)
-{
+export function Label(p: LabelProps & HTMLAttributes<HTMLElement>) {
+  let dis = DefaultInputSpan;
+  var children = p.children;
+  if (p.inputspan !== false && (dis.class || dis.style))
+    children = <InputSpan>{children}</InputSpan>;
   var label = createElement("label", omit(p, LabelAttrs), 
-    ...(p.labelAfter ? [p.children, LabelSpan(p)] : [LabelSpan(p), p.children]));
+    ...(p.labelAfter ? [children, LabelSpan(p)] : [LabelSpan(p), children]));
   return p.p ? <p>{label}</p> : label;
 }
 
 /** Subcomponent for the `<span>` of label text within a Label. */
-export function LabelSpan(p: LabelProps & { children?: React.ReactNode })
-{
+export function LabelSpan(p: LabelProps & { children?: React.ReactNode }) {
   var auto = !(p.labelStyle || p.labelClass || p.labelAfter);
   return <span className={auto ? DefaultLabelSpan.class : p.labelClass} 
                    style={auto ? DefaultLabelSpan.style : p.labelStyle}>{p.label || p.children}</span>;
 }
 
-function LabelOrP(p: LabelProps & React.HTMLAttributes<HTMLElement>)
-{
-  return p.p && p.label === undefined ? <p>{p.children}</p> : Label(p);
+export function InputSpan(p: { children: React.ReactNode }): JSX.Element {
+  let dis = DefaultInputSpan;
+  return <span className={dis.class} style={dis.style}>{p.children}</span>;
 }
 
 /** Attributes that apply to all `input` elements including simple buttons */
@@ -201,6 +243,9 @@ export interface TimeInputAttributes extends DateInputAttributes
   day?: Date;
 }
 
+/** Attributes of DateTimeBox are the same as DateBox */
+export interface DateTimeInputAttributes extends DateInputAttributes {}
+
 /** TypeScript 3.x can no longer infer T when TextAreaAttributes<T> is used. 
  *  The workaround is flawed: it can't require `parse` when T is not a string. */
 export type TextAreaAttributesWorkaround<T> = TextAreaAttributes_<T> & { parse?: Parse<T>, stringify?: (t:T) => string };
@@ -295,11 +340,14 @@ function renderInput(p: any, defaultType: string|undefined, excludeAttrs: string
 
 function maybeWrapInLabel(p: LabelProps, el: JSX.Element, preferAfter?: boolean)
 {
-  return p.label === undefined && !p.p ? el :
-    <LabelOrP labelClass={p.labelClass}
-              labelStyle={p.labelStyle}
-              labelAfter={p.labelAfter !== undefined ? p.labelAfter : preferAfter}
-              label={p.label} p={p.p}>{el}</LabelOrP>;
+  if (p.label === undefined)
+    return p.p ? <p>el</p> : el;
+  return (
+    <Label labelClass={p.labelClass} labelStyle={p.labelStyle}
+           labelAfter={p.labelAfter !== undefined ? p.labelAfter : preferAfter}
+           label={p.label} p={p.p} inputspan={p.inputspan}>
+      {el}
+    </Label>);
 }
 
 /** A React version of `<input type="text">` based on `Holder<T>`
@@ -341,36 +389,32 @@ export class TextArea<T> extends TextBase<T, TextAreaAttributesWorkaround<T>>
  *  because IE requires the user to actually type a Date.
  **/
 export function DateBox(props: DateInputAttributes) {
-/*  The type system seems broken in TypeScript v2.9 in case you combine
-    union types with conditional types. The following test case demos the
-    issue, but it seems fixed in the Playground (v3.1?). 
-    Workaround: use `any`. Example:
-
-    type Parser<T> = ((input:string) => T|Error);
-    function parse<T>(s: string, p: T extends string ? 
-                      Parser<T> | undefined : Parser<T>): T
-    {
-      return p ? p(s) : s as any;
-    }
-    console.log(parse('123', s => parseInt(s)));
-    console.log(parse<number|undefined>('abc', 
-                s => (parseInt(s) ? parseInt(s) : undefined))); // ERROR
-
-    Argument of type '(s: string) => number | undefined' is not assignable to parameter of type '((input: string) => Error | undefined) | ((input: string) => number | Error)'.
-      ... Type 'undefined' is not assignable to type 'number | Error'.
-*/
-  var p2 = omit(props, ['utc']) as any;
+  var p2 = omit(props, ['utc']);
   p2.type || (p2.type = "date");
   p2.placeholder || (p2.placeholder = "YYYY-MM-DD"); // for IE
   p2.parse = (s:string, oldVal:Date|undefined) => parseDate(s, props.utc, oldVal);
   p2.stringify = (d:Date|undefined) => dateToString(d, props.utc) || "";
      // new Date(d.valueOf() + d.getTimezoneOffset() * 60000).toISOString().substr(0,10)
   // return <TextBox<Date|undefined> {...p2}/>; (Avoid unnecessary __assign)
-  return createElement(TextBox as any, p2);
+  return createElement(TextBox, p2);
 }
 
-/** Parses a date if it is in the form YYYY-MM-DD, as it will be
- *  if it was produced by `<input type="date"/>`. If a second Date is
+/** Combines DateBox and TimeBox into a composite component. Although there
+ *  is an HTML element for this purpose (`<input type="datetime-local">`), it
+ *  is not supported by FireFox, Safari or Internet Explorer (as of 2020/04).
+ */
+export function DateTimeBox(props: DateTimeInputAttributes) {
+  let p1: LabelProps = {...props, inputspan: false};
+  let p2 = omit(props, LabelAttrs);
+  return maybeWrapInLabel(p1, 
+    <InputSpan>
+      {createElement(DateBox, p2)}
+      {createElement(TimeBox, p2)}
+    </InputSpan>);
+}
+
+/** Parses a date if it is in the form YYYY-MM-DD or YYYY-MM-DD hh:mm,
+ *  as it will be if it was produced by `<input type="date"/>`. If a second Date is
  *  provided, the time from that date is preserved in the return
  *  value; otherwise the time is set to noon UTC so that the date
  *  stays the same in all time zones. */

@@ -3,8 +3,8 @@ import * as ReactDOM from 'react-dom';
 
 // *** When using the npm package, import 'holders' or 'holders/elements' instead! ***
 import {holdProp, holdState, holdProps, holdAllProps, Holder, Holders,
-        TextBox, TextArea, Label, LabelSpan, CheckBox,
-        Radio, Button, Slider, TimeBox, DateBox} from './elements';
+        TextBox, TextArea, Label, LabelSpan, InputSpan, CheckBox,
+        Radio, Button, Slider, DateTimeBox} from './elements';
 
 /* @jsx h */
 var h = React.createElement;
@@ -36,11 +36,11 @@ function PersonForm(m: Holders<Model>) {
     <TextBox p label="Age:"      value={m.age}  type="number"
              parse={s => parseFloat(s) || new Error("Invalid age")}/>
     <TextBox p label="Address:"  value={m.address}  autoComplete="address-line1"/>
-    <TextBox p label="City:"     value={m.city}     autoComplete="address-level1"/>
+    <TextBox p label="City:"     value={m.city}     autoComplete="address-level2"/>
     <TextBox p label="Province:" value={m.province} autoComplete="address-level1"/>
     <TextBox p label="Country:"  value={m.country}  autoComplete="country-name"/>
     <p>
-      <LabelSpan><CheckBox label="Married"  value={m.married}  labelAfter={true}/></LabelSpan>
+      <LabelSpan><CheckBox label="Married"  value={m.married} labelAfter={true}/></LabelSpan>
       {m.married.get ? <CheckBox label="With Children" value={m.haveChildren}/> : undefined}
     </p>
     <TextBox p label="Favorite color:" value={m.color} type="color"/>
@@ -76,19 +76,13 @@ class StatefulForm extends React.Component<{}, FormState>
   }
   render() {
     var hs = holdState(this), date = hs('date');
-    return (
+    return (<form>
       <fieldset>
         <legend>Additional input fields:</legend>
-        <CheckBox p value={hs('checkbox1')} label="I am prepared to see various form elements"/>
+        <CheckBox value={hs('checkbox1')} label="I am prepared to see various form elements"/>
         { !this.state.checkbox1 ? undefined : <div>
-          <Label p label="Date/time (UTC):">
-            <DateBox value={date} utc={true}/>
-            <TimeBox value={date} utc={true}/>
-          </Label>
-          <Label p label="Date/time (local):">
-            <DateBox value={date}/>
-            <TimeBox value={date}/>
-          </Label>
+          <DateTimeBox p label="Date/time (UTC):" value={date} utc={true}/>
+          <DateTimeBox p label="Date/time (local):" value={date}/>
           <CheckBox p value={hs('checkbox2')} label="Checkbox:" labelAfter={false} />
           <Label p label="Happiness level:">
             <Slider value={hs('happiness')} min={-10} max={10} step={1}
@@ -101,26 +95,33 @@ class StatefulForm extends React.Component<{}, FormState>
               <option value="5"/><option value="10"/>
             </datalist>
           </Label>
-          <Label p label="Select fruit:">
-            <Radio value={hs('fruit')} is="apple"  label="Apple "/>
-            <Radio value={hs('fruit')} is="banana" label="Banana "/>
-            <Radio value={hs('fruit')} is="cherry" label="Cherry "/>
-          </Label>
-          <TextBox label="Selected fruit:" value={hs("fruit")}/>
           <p>
-            <LabelSpan><CheckBox label="Ready to order" value={hs("ready")}/></LabelSpan>
-            <Button onClick={() => this.deliver()}>Deliver fruit</Button>
+            <LabelSpan label="Select fruit:"/>
+            <InputSpan>
+              <Radio value={hs('fruit')} is="apple"  label="Apple "/>
+              <Radio value={hs('fruit')} is="banana" label="Banana "/>
+              <Radio value={hs('fruit')} is="cherry" label="Cherry "/>
+            </InputSpan>
           </p>
-          <p><a href="http://loyc.net/les">LES</a> <a href="http://loyc.net/2017/lesv3-update.html">v3</a> code<br/>
+          <TextBox p label="Selected fruit:" value={hs("fruit")}/>
+          <p>
+            <Label label={<CheckBox label="Ready to order" value={hs("ready")}/>}>
+              <Button onClick={e => this.deliverClicked(e)} style={{maxWidth:200}}>Deliver fruit</Button>
+            </Label>
+          </p>
+          <p>
+            <LabelSpan><a href="http://loyc.net/les">LES</a> <a href="http://loyc.net/2017/lesv3-update.html">v3</a> code<br/></LabelSpan>
             <TextArea<string> value={hs('code')} cols={50} rows={5}/>
           </p>
         </div>}
-      </fieldset>);
+      </fieldset>
+    </form>);
   }
-  deliver() {
-    let ready = !!this.state.fruit;
-    this.setState({ ready });
-    alert(ready ? `Your ${this.state.fruit} is coming.` : "Pick a fruit first.");
+  deliverClicked(e: React.MouseEvent) {
+    e.preventDefault(); // prevent form submit
+    let fruit = this.state.fruit;
+    this.setState({ ready: !!fruit });
+    setTimeout(() => alert(fruit ? `Your ${fruit} is coming.` : "Pick a fruit first."));
   }
 }
 
