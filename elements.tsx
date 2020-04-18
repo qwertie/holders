@@ -41,11 +41,11 @@ export function Label(p: LabelProps & HTMLAttributes<HTMLElement>)
 }
 
 /** Subcomponent for the `<span>` of label text within a Label. */
-export function LabelSpan(p: LabelProps)
+export function LabelSpan(p: LabelProps & { children?: React.ReactNode })
 {
   var auto = !(p.labelStyle || p.labelClass || p.labelAfter);
   return <span className={auto ? DefaultLabelSpan.class : p.labelClass} 
-                   style={auto ? DefaultLabelSpan.style : p.labelStyle}>{p.label}</span>;
+                   style={auto ? DefaultLabelSpan.style : p.labelStyle}>{p.label || p.children}</span>;
 }
 
 function LabelOrP(p: LabelProps & React.HTMLAttributes<HTMLElement>)
@@ -97,6 +97,15 @@ type Omit<T, K> = Pick<T, Exclude<keyof T, K>>
 
 /** Properties of a Radio component. Example: `<Radio value={model.fruit} is="apple"/>` */
 export type RadioAttributes<T> = (T extends boolean ? {is?: T} : {is: T}) & Omit<InputAttributes<T>,"is">;
+
+/** Properties of a Radio component. Example: `<Radio value={model.fruit} is="apple"/>`.
+ *  This is used as a workaround for the mysterious difficulty TypeScript has handling
+ *  `RadioAttributes<string>`. You see, `<Radio value={h} is="X"/>` works fine if `h` is a
+ *  `Holder<"X"|"Y">`, but if `h` is `Holder<string>`, it says without further explanation
+ *  that the props of Radio are "not assignable" to it. The workaround is to mark `is` 
+ *  optional, even though it is required when T is not boolean.
+ */
+export type RadioAttributesWorkaround<T> = {is?: T} & Omit<InputAttributes<T>,"is">;
 
 /** Attributes supported by Slider and its underlying `<input type="range">` element.
  *  Only horizontal sliders are supported in most browsers. */
@@ -192,7 +201,8 @@ export interface TimeInputAttributes extends DateInputAttributes
   day?: Date;
 }
 
-/** TypeScript 3.x can no longer infer T when TextAreaAttributes<T> is used. Using this instead. */
+/** TypeScript 3.x can no longer infer T when TextAreaAttributes<T> is used. 
+ *  The workaround is flawed: it can't require `parse` when T is not a string. */
 export type TextAreaAttributesWorkaround<T> = TextAreaAttributes_<T> & { parse?: Parse<T>, stringify?: (t:T) => string };
 
 /** Attributes supported for TextArea and its underlying `<textarea>` element. */
@@ -211,51 +221,58 @@ interface TextAreaAttributes_<T> extends TextAttributesBase<T> {
   wrap?: "hard"|"soft"|"off";
 };
 
+function getValue<T>(props: { value?: Holder<T> }): T {
+  return typeof props.value === 'object' ? props.value.get : "(invalid)" as any as T;
+}
+
 const LabelAttrs = ['label', 'labelStyle', 'labelClass', 'labelAfter', 'p'];
 const LabelAttrsAndParse = LabelAttrs.concat('parse', 'stringify');
 const LabelAttrsAndIs = LabelAttrs.concat('is');
 
-// Base class of TextBox and TextArea
+// Base class of TextBox and TextArea. Also used by DateBox and TimeBox.
 abstract class TextBase<T extends {}, Props extends TextAttributesBase<T>> 
-       extends Component<Props, {tempText?:string}>
+       extends Component<Props, { tempText?: string, hasFocus?: boolean }>
 {
-  protected abstract chooseType(p2: any): string;
-  state = {} as {tempText?:string};
+  protected abstract chooseTag(p2: any): string;
+  state = {} as { tempText?: string, hasFocus?: boolean };
   render()
   {
-    var p = this.props;
-    var p2 = omit(p, LabelAttrsAndParse) as any;
-    p2.value = this.state.tempText != null ? this.state.tempText : asStr(p.value.get, p.stringify);
-    p2.onBlur = (e: any) => { // lost focus
-      this.setState({ tempText: undefined });
+    let p = this.props;
+    let p2 = omit(p, LabelAttrsAndParse) as React.InputHTMLAttributes<HTMLInputElement>;
+    p2.value = this.state.tempText != null ? this.state.tempText : asStr(getValue(p), p.stringify);
+    p2.onBlur = () => { // lost focus
+      this.setState({ hasFocus: false, tempText: undefined });
+    };
+    p2.onFocus = () => {
+      this.setState({ hasFocus: true });
     };
     p2.onChange = (e: any) => {
-      var value: string = e.target.value;
+      let value: string = e.target.value;
+      let scv = e.target.setCustomValidity || ((v: string) => {});
       if (p.parse) {
-        this.setState({ tempText: value });
         try {
-          var result = p.parse((e.target as any).value, p.value.get);
+          var result = p.parse((e.target as any).value, getValue(p));
+          if (!(result instanceof Error))
+            p.value.set(result);
         } catch(e) {
           result = e;
         }
-        var scv = e.target.setCustomValidity;
+        // Bug fix: in FireFox the user can change an <input type="number"> without giving 
+        // it focus. Avoid setting tempText without focus because it blocks external updates.
+        if (this.state.hasFocus || result instanceof Error)
+          this.setState({ tempText: value });
         if (result instanceof Error) {
-          if (scv)
-            scv.call(e.target, result.message);
+          scv.call(e.target, result.message);
         } else {
-          p.value.set(result);
-          if (scv)
-            scv.call(e.target, ""); // no error
+          scv.call(e.target, ""); // no error
         }
       } else {
         // If user did not provide a parse function, assume T is string
         p.value.set(value as any as T);
+        scv.call(e.target, ""); // no error
       }
     };
-    p2.onBlur = (e: any) => { // lost focus
-      this.setState({ tempText: undefined });
-    };
-    var tag = this.chooseType(p2);
+    let tag = this.chooseTag(p2);
     return maybeWrapInLabel(p, createElement(tag, p2, p.children));
 
     function asStr(val: T, stringify?: (t:T) => string) {
@@ -298,7 +315,7 @@ function maybeWrapInLabel(p: LabelProps, el: JSX.Element, preferAfter?: boolean)
 */
 export class TextBox<T> extends TextBase<T, TextInputAttributesWorkaround<T>>
 {
-  protected chooseType(p2: any) {
+  protected chooseTag(p2: any) {
     p2.type || (p2.type = "text");
     return "input";
   }
@@ -310,7 +327,7 @@ export class TextBox<T> extends TextBase<T, TextInputAttributesWorkaround<T>>
  */
 export class TextArea<T> extends TextBase<T, TextAreaAttributesWorkaround<T>>
 {
-  protected chooseType(p2: any) { return "textarea"; } 
+  protected chooseTag(p2: any) { return "textarea"; } 
 }
 
 /** A Date editor based on `<input type="date">`, with `props.value.get`
@@ -319,6 +336,9 @@ export class TextArea<T> extends TextBase<T, TextAreaAttributesWorkaround<T>>
  *  When the date is modified, the time is left unchanged, so a DateBox
  *  and a TimeBox can be used together to edit a single `Holder<Date>`.
  *  Can have a label.
+ * 
+ *  Note: Don't use this if you need solid support for Internet Explorer,
+ *  because IE requires the user to actually type a Date.
  **/
 export function DateBox(props: DateInputAttributes) {
 /*  The type system seems broken in TypeScript v2.9 in case you combine
@@ -341,6 +361,7 @@ export function DateBox(props: DateInputAttributes) {
 */
   var p2 = omit(props, ['utc']) as any;
   p2.type || (p2.type = "date");
+  p2.placeholder || (p2.placeholder = "YYYY-MM-DD"); // for IE
   p2.parse = (s:string, oldVal:Date|undefined) => parseDate(s, props.utc, oldVal);
   p2.stringify = (d:Date|undefined) => dateToString(d, props.utc) || "";
      // new Date(d.valueOf() + d.getTimezoneOffset() * 60000).toISOString().substr(0,10)
@@ -390,6 +411,7 @@ export function dateToString(d: Date|undefined, utc?: boolean): string|undefined
 export function TimeBox(props: TimeInputAttributes) {
   var p2 = omit(props, ['utc']) as any;
   p2.type || (p2.type = "time");
+  p2.placeholder || (p2.placeholder = "hh:mm"); // for IE
   p2.parse = (input:string, oldValue: Date|undefined) => 
              parse24hTime(input, oldValue || props.day, props.utc);
   p2.stringify = (d:Date|undefined) => timeTo24hString(d, props.utc);
@@ -419,7 +441,7 @@ export function parse24hTime(value: string|undefined, day?: Date, utc?: boolean)
       return clone;
     }
   }
-  return undefined;
+  return day;
 }
 
 /** Wrapper for `<input type="checkbox">` based on `Holder<boolean>`.
@@ -432,7 +454,7 @@ export function parse24hTime(value: string|undefined, day?: Date, utc?: boolean)
 export function CheckBox(props: InputAttributes<boolean>)
 {
   return renderInput(props, "checkbox", LabelAttrs, true, {
-    checked: props.value.get,
+    checked: getValue(props),
     onChange: (e: any) => {props.value.set(e.target.checked);}
   });
 }
@@ -452,10 +474,10 @@ export function CheckBox(props: InputAttributes<boolean>)
  *  as a boolean, and it calls `props.value.set(true)` when it is 
  *  checked and `props.value.set(false)` when it is unchecked.
  */
-export function Radio<T>(props: RadioAttributes<T>)
+export function Radio<T>(props: RadioAttributesWorkaround<T>)
 {
   return renderInput(props, "radio", LabelAttrsAndIs, true, {
-    checked: props.is !== undefined ? props.value.get == props.is : !!props.value.get,
+    checked: props.is !== undefined ? getValue(props) == props.is : !!getValue(props),
     onChange: (e: any) => {
       if (e.target.checked)
         props.value.set(props.is !== undefined ? props.is : true as any as T);
@@ -506,7 +528,7 @@ export function Range(p: SliderAttributes) { return Slider(p); }
 export function Slider(p: SliderAttributes)
 {
   return renderInput(p, "range", LabelAttrs, false, {
-    value: p.value.get,
+    value: getValue(p),
     onChange: (e: any) => { p.value.set(parseFloat(e.target.value)); }
   });
 }

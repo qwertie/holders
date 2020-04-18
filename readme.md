@@ -18,18 +18,28 @@ If `teaTime` is a `Holder<Date>` object, `teaTime.get` returns the current value
 
 This library consists of two parts: 
 
-1. ['hold'](https://github.com/qwertie/holders/blob/master/hold.ts) is the basic code for creating holder objects, including the `hold()`, `holdState`, `holdProps` and `holdAllProps` functions. This module is tiny and does not use React/JSX.
-2. ['elements'](https://github.com/qwertie/holders/blob/master/elements.tsx) provides small React components named `Label`, `TextBox`, `CheckBox`, etc., which wrap standard elements like `<label>`, `<input type="text">`, and `<input type="checkbox">`.
+1. ['holders'](https://github.com/qwertie/holders/blob/master/holders.ts) is the basic code for creating holder objects, including the `holdValue`, `holdStates`, `holdProps`, and `holdAllProps` functions. This module is tiny and does not use React or JSX.
+2. ['elements'](https://github.com/qwertie/holders/blob/master/elements.tsx) provides small React components named `Label`, `TextBox`, `CheckBox`, `DateBox`, etc., which wrap standard elements like `<label>`, `<input type="text">`, and `<input type="checkbox">`. Each element can have a label and all standard HTML attributes are supported on each form element. Validation is supported via `HTMLInputElement.setCustomValidity()`. 5K minified.
 
 It also includes an example (demo.html, demo.tsx).
 
 To install it in your npm project, run this terminal command: `npm i holders`
 
+To run the demo
+---------------
+
+Due to [bug #1904](https://github.com/parcel-bundler/parcel/issues/1904) in parcel-bundler, Parcel versions above 1.6.2 don't work.
+
+    npm install --global parcel-bundler@1.6.2
+    npm run demo
+    
+Then visit http://localhost:1234 in browser.
+
 Features
 --------
 
 - UMD modules targeting ES5 (old browsers supported)
-- Minified size: 0.9K for hold.min.js, 4.9K for elements.min.js
+- Minified size: 2.4K for hold.min.js, 5.0K for elements.min.js
 - Includes d.ts files (written in TypeScript)
 - Elements are expected to be compatible with Preact as well as React
 

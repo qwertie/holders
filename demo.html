@@ -3,39 +3,22 @@
 <head>
   <title>Holders Demo</title>
   <meta charset="utf-8"/>
-  <style>
-    body    { font-family: "Helvetica", sans-serif; }
-    a       { text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    input[type=range] {
-      height:1em;
-      margin: 0 0.5em 0 0.5em;
-    }
-
-    form, fieldset {
-      max-width: 500px;
-    }
-    form p, fieldset p {
-      margin: 8px 0 10px 0;
-    }
-    .labelspan {
-      display: inline-block;
-      width: calc(5em + 10%);
-    };
-  </style>
+  <link rel="stylesheet" type="text/css" href="demo.css">
 </head>
 <body>
-  <h1>Simple Form</h1>
-  <p>This demo uses <a href='https://parceljs.org/'>parcel</a>. 
-     Use <tt>npm install --global parcel-bundler@1.6.2</tt>, then run this 
-     terminal command to start the server: <tt>parcel demo.html</tt>.
-     As of 2020/02 there's a <a href="https://github.com/parcel-bundler/parcel/issues/1904">
-     bug in newer versions of Parcel</a> that prevents the demo from working.</p>
-  <div id="app"></div>
+  <div class="main">
+    <h1>Simple Form</h1>
+    <p>This demo uses <a href='https://parceljs.org/'>parcel</a>. 
+       Use <tt>npm install --global parcel-bundler@1.6.2</tt>, then run this 
+       terminal command to start the server: <tt>parcel demo.html</tt>.
+       As of 2020/02 there's a <a href="https://github.com/parcel-bundler/parcel/issues/1904">
+       bug in newer versions of Parcel</a> that prevents the demo from working.</p>
+    <div id="app"></div>
+  </div>
   <script src="demo.tsx"></script>
   <script>
     if (document.querySelector("body > script").src.slice(-4) !== '.tsx')
-      document.querySelector("body > p").style.display = 'none';
+      document.querySelector("body > .main > p").style.display = 'none';
   </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import {hold, holdState, holdAllProps, Holder, Holders, 
+import {holdProp, holdState, holdAllProps, Holder, Holders, 
         TextBox, TextArea, Label, LabelSpan, CheckBox,
         Radio, Button, Slider, TimeBox, DateBox} from './elements';
 
@@ -15,10 +15,11 @@ var createElement = React.createElement; // the code hasn't changed, but now Typ
 interface FormState {
   checkbox1: boolean;
   checkbox2: boolean;
-  fruit: "apple"|"banana"|"cherry"|undefined;
+  fruit?: string;
   happiness: number;
   code: string;
   date?: Date;
+  ready?: boolean;
 }
 
 class StatefulForm extends React.Component<{}, FormState>
@@ -31,51 +32,56 @@ class StatefulForm extends React.Component<{}, FormState>
       fruit: undefined,
       happiness: 1,
       date: undefined,
-      code: '.class Foo extends Base {\n  prefix := ""\n  .constructor(@public bar: int) {}\n  .fn toString() => prefix + bar.toString()\n}'
+      code: '.class Foo extends Base {\n  prefix := ""\n  constructor(@public bar: int) => {}\n  toString() => prefix + bar.toString()\n}',
     };
   }
   render() {
-    var hs = holdState(this as StatefulForm), date = hs('date');
+    var hs = holdState(this), date = hs('date');
     return (
       <fieldset>
         <legend>Additional input fields:</legend>
         <CheckBox p value={hs('checkbox1')} label="I am prepared to see various form elements"/>
-        { !this.state.checkbox1 ? [] : [
+        { !this.state.checkbox1 ? undefined : <div>
           <Label p label="Date/time (UTC):">
             <DateBox value={date} utc={true}/>
             <TimeBox value={date} utc={true}/>
-          </Label>,
+          </Label>
           <Label p label="Date/time (local):">
             <DateBox value={date}/>
             <TimeBox value={date}/>
-          </Label>,
-          <CheckBox p value={hs('checkbox2')} label="Checkbox:" labelAfter={false} />,
+          </Label>
+          <CheckBox p value={hs('checkbox2')} label="Checkbox:" labelAfter={false} />
           <Label p label="Happiness level:">
             <Slider value={hs('happiness')} min={-10} max={10} step={1}
                     list="ticks" style={ {width:"12em"} }/>
-            <TextBox type="number" value={hs('happiness')} style={ {width:"4em"} }
+            <TextBox type="number" value={hs('happiness')} style={ {minWidth:"4em", width:"4em"} }
                      parse={s => parseInt(s)}/>
             <datalist id="ticks">
               <option value="-10"/><option value="-5"/>
               <option value="0"/>
               <option value="5"/><option value="10"/>
             </datalist>
-          </Label>,
+          </Label>
           <Label p label="Select fruit:">
             <Radio value={hs('fruit')} is="apple"  label="Apple "/>
             <Radio value={hs('fruit')} is="banana" label="Banana "/>
             <Radio value={hs('fruit')} is="cherry" label="Cherry "/>
-          </Label>,
-          <p><LabelSpan/>
-            <Button onClick={() => alert(`Your ${this.state.fruit} is coming.`)}>
-              Deliver fruit
-            </Button>
-          </p>,
+          </Label>
+          <TextBox label="Selected fruit:" value={hs("fruit")}/>
+          <p>
+            <LabelSpan><CheckBox label="Ready to order" value={hs("ready")}/></LabelSpan>
+            <Button onClick={() => this.deliver()}>Deliver fruit</Button>
+          </p>
           <p><a href="http://loyc.net/les">LES</a> <a href="http://loyc.net/2017/lesv3-update.html">v3</a> code<br/>
             <TextArea<string> value={hs('code')} cols={50} rows={5}/>
           </p>
-        ]}
+        </div>}
       </fieldset>);
+  }
+  deliver() {
+    let ready = !!this.state.fruit;
+    this.setState({ ready });
+    alert(ready ? `Your ${this.state.fruit} is coming.` : "Pick a fruit first.");
   }
 }
 
@@ -100,18 +106,17 @@ class Model {
 // A simple form
 function PersonForm(m: Holders<Model>) {
   return <form>
-    <TextBox p label="Name:"     value={m.name} autoComplete="name"/>
+    <TextBox p label="Name:"     value={m.name} autoComplete="name" placeholder="First Last"/>
     <TextBox p label="Age:"      value={m.age}  type="number"
              parse={s => parseFloat(s) || new Error("Invalid age")}/>
     <TextBox p label="Address:"  value={m.address}  autoComplete="address-line1"/>
     <TextBox p label="City:"     value={m.city}     autoComplete="address-level1"/>
     <TextBox p label="Province:" value={m.province} autoComplete="address-level1"/>
     <TextBox p label="Country:"  value={m.country}  autoComplete="country-name"/>
+    <CheckBox p label="Married"  value={m.married}  labelAfter={true}/>
     <TextBox p label="Favorite color:" value={m.color} type="color"/>
-    <CheckBox p label="Married"  value={m.married}/>
   </form>;
 }
-
 
 class App extends React.Component<{model:Model}, Holders<Model> & {model:Holder<Model>}>
 {
@@ -119,19 +124,21 @@ class App extends React.Component<{model:Model}, Holders<Model> & {model:Holder<
     super(props);
     var h: Holders<Model> = 
       holdAllProps(props.model, () => { this.forceUpdate(); });
-    this.state = {...h, 
-      model: hold(props, "model", (_, newModel) => {
+    this.state = {
+      ...h, 
+      model: holdProp(props, "model", newModel => {
         // Model was changed via TextArea. Update the model.
         Object.assign(props.model, newModel);
         this.forceUpdate();
-      })
+        return props.model; // prevent the Holder from assigning a read-only prop
+      }, true)
     };
   }
   render() {
     return <div>
       <PersonForm {...this.state}/>
-      <p>JSON version (editable)</p>
-      <TextArea value={this.state.model} rows={10} cols={50}
+      <TextArea label="JSON version (editable)"
+                value={this.state.model} rows={10} cols={40}
                 stringify={m => JSON.stringify(m,undefined,"  ")} 
                 parse={ (input, oldVal) => ({...oldVal, ...JSON.parse(input)}) }/>
       <StatefulForm/>

@@ -1,6 +1,6 @@
 {
   "name": "holders",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "A tiny library to help you construct React user interfaces quickly & easily",
   "main": "elements",
   "typings": "elements",
@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc && npm run minify",
+    "build": "tsc --version && tsc && npm run minify",
     "minify": "uglifyjs -cm -o holders.min.js holders.js && uglifyjs -cm -o elements.min.js elements.js",
     "demo": "parcel demo.html",
     "prepare": "npm run build"
