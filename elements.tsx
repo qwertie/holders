@@ -1,4 +1,4 @@
-import {createElement, Component, HTMLAttributes, ComponentElement} from "react";
+import {createElement, Component, HTMLAttributes, ComponentElement, ChangeEvent} from "react";
 import {Holder} from './holders';
 export * from './holders';
 
@@ -35,21 +35,23 @@ export interface LabelProps {
    *  (and the default class/style, if any, is not applied) */
   labelAfter?: boolean;
   /** If a label is attached to an input elements, the input element is normally wrapped
-   *  in a `<span class="inputspan">` element. Setting `inputspan={false}` will remove
+   *  in a `<span class="inputspan">` element. Adding `noInputSpan` will remove
    *  that span element. */
-  inputspan?: boolean;
+  noInputSpan?: boolean;
+  /** If true, an error span is not produced alongside the input element even when there
+   *  is a validation error. */
+  noErrorSpan?: boolean;
   /** An optional message displayed after (or before) the element. User-defined CSS
    *  is required to make this look good; by default it'll have className="errorspan".
-   *  If you provide a parse function and it fails, its error message overrides this
-   *  property. If this is a string, the standard `setCustomValidity` method is called 
-   *  on it.
+   *  If you provide a parse function for a TextBox/TextArea and it fails, its error 
+   *  message overrides this property.
    *
    *  By default, an error also causes the element to be marked invalid using the HTML5
    *  `setCustomValidity` API, but this doesn't happen if error is an element (that API 
    *  does not support anything but plain text).
    * 
    *  The elements in this library also watch for the HTML5 `validationMessage` associated
-   *  with the element. If this property `== null` (or if it is a `Holder` with 
+   *  with the element. If the error property `== null` (or if it is a `Holder` with 
    *  `.get == null`), the HTML5 validation message will be shown instead. If this
    *  property is a Holder and it has a setter, the input element will call the `.set()`
    *  function when an HTML5 validation error event occurs.
@@ -122,31 +124,42 @@ export interface FormOptions
   inputSpan: { class: string, style: React.CSSProperties|undefined };
   
   /** Default settings (class and style) for the optional message displayed inside the 
-   *  inputspan, after (or before) an input element from this library. The so-called error 
-   *  span is added to the DOM only if the `error` prop is set, or if the `parse` function
-   *  of a TextBox/TextArea fails.
+   *  inputspan, after (or before) an input element from this library. To disable error 
+   *  span production, set both the class and the style to undefined.
+   * 
+   *  Normally, the so-called error span is added to the DOM only if an error is shown (when
+   *  the `error` prop is set, or if the `parse` function of a TextBox/TextArea fails, or
+   *  if there is a validation error). For text-based controls, the `forceEmitForText` option
+   *  forces empty error spans to be emitted unless error display is disabled entirely
+   *  (this is used, for example, to make animation work in the demo when an error appears 
+   *  or disappears)
    **/
-  errorSpan: { class: string, style: React.CSSProperties|undefined };
+  errorSpan: {
+    class: string, style: React.CSSProperties|undefined, 
+    emitEmptyForText: boolean
+  };
+
+  /** Default values of the keepBadText and showErrorEarly props (see `TextAttributesBase`) */
+  validation: { keepBadText: boolean, showErrorEarly: boolean }
 
   /** This function's job is to combine an element (such as <input>, <button> or <textarea>) 
    *  with <p>, <Label>, <LabelSpan>, <InputSpan> and/or <ErrorSpan> depending on its props.
    * 
-   * @param el A virtual element such as an <input>, <button> or <textarea>.
-   * @param p  Options for labeling and error display
-   * @param preferLabelAfter Checkboxes set this to true, indicating they prefer the label
-   *        to appear after the checkbox. All other elements use false for this argument.
-   *        `p.labelAfter` should take precedence, if provided.
-   * @param inputSpan If this is not `undefined`, it should override `p.inputSpan`. 
-   *        This `=== false` if the `el` is composite and is already wrapped in an inputspan.
+   * @param el A virtual element such as an `<input>`, `<button>` or `<textarea>`.
+   * @param type The `type` attribute of an `<input>` element, or the tag ("textarea", "button") 
+   *        if it is not an input element.
+   * @param p  At minimum, this contains options for labeling and error display
+   * @param error Validation error, if any. This function should ignore `p.error`.
    */
-  composeElementWithLabel: (el: JSX.Element, p: LabelProps, preferLabelAfter?: boolean, inputSpan?: boolean) => JSX.Element
+  composeElementWithLabel: (el: JSX.Element, type: string|undefined, p: LabelProps, error?: string | JSX.Element) => JSX.Element
 }
 
 /** See FormOptions for documentation. */
 export var options: FormOptions = {
   labelSpan: { class: "labelspan", style: undefined },
   inputSpan: { class: "inputspan", style: undefined },
-  errorSpan: { class: "errorspan", style: undefined },
+  errorSpan: { class: "errorspan", style: undefined, emitEmptyForText: false },
+  validation: { keepBadText: false, showErrorEarly: false },
   composeElementWithLabel: defaultComposer
 };
 
@@ -167,7 +180,7 @@ export var options: FormOptions = {
 export function Label(p: LabelProps & HTMLAttributes<HTMLElement>) {
   let ois = options.inputSpan;
   var children = p.children;
-  if (p.inputspan !== false && (ois.class || ois.style))
+  if (!p.noInputSpan && (ois.class || ois.style))
     children = <InputSpan>{children}</InputSpan>;
   var label = createElement("label", omit(p, LabelAttrs), 
     ...(p.labelAfter ? [children, LabelSpan(p)] : [LabelSpan(p), children]));
@@ -273,6 +286,9 @@ export interface SliderAttributes extends InputAttributes<number> {
   list?: string;
 }
 
+/** Attributes supported by ColorPicker and its underlying `<input type="color">` element. */
+export interface ColorPickerAttributes extends InputAttributes<string> {}
+
 interface BaseInterface<T> {}
 interface DerivedInterface_<T> extends BaseInterface<T> {
   type?: "text"|"url"|"tel"|"email"|"password"|"number"|"search"|"color"|
@@ -296,6 +312,26 @@ export interface TextAttributesBase<T> extends InputAttributes<T> {
   /** A function that converts the current T value to a string for 
    *  display in the TextBox or TextArea. */
   stringify?(t:T): string;
+  /** By default, if a parse error occurs, the parse error message will be cleared when the
+   *  TextBox/TextArea loses focus, and the invalid text will removed and replaced with 
+   *  presumably-valid text produced by `stringify`. This prop prevents this behavior, 
+   *  allowing both the text and error message to persist after focus is lost.
+   * 
+   *  Note: for `<input type="number">`, if the underlying model does not contain a number,
+   *  the browser itself will ignore `value` and show whatever text the user typed, even if 
+   *  `keepBadText` is false.
+   **/
+  keepBadText?: boolean;
+  /** By default, showing a validation error is deferred until the `TextBox/TextArea` loses
+   *  focus, unless the element previously lost focus while containing an error. This option
+   *  causes the error to appear as early as possible.
+   * 
+   *  However, if `keepBadText` is false and a parse error occurs, `TextBox` always behaves as
+   *  though `showErrorEarly` is true. This is because the bad text and error message will 
+   *  be discarded when the element loses focus, so the user won't see the error at all 
+   *  unless it is shown early.
+   */
+  showErrorEarly?: boolean;
 }
 
 /** TypeScript 3.x can no longer infer T when TextInputAttributes<T> is used. Using this instead. */
@@ -313,15 +349,16 @@ interface TextInputAttributes_<T> extends TextAttributesBase<T> {
          "time"|"date"|"datetime"|"datetime-local"|"month"|"week"|"hidden";
   /** Points to a <datalist> of predefined options to suggest to the user. */
   list?: string;
-  /** The initial size of the control (measured in character widths.) */
+  /** The initial size of the control (measured in character widths.) CSS properties 
+   *  may override this. */
   size?: number;
   /** Maximum number of characters (in UTF-16 code units) that the user can enter. */
   maxLength?: number;
-  /** indicates the kind of text field this is so that the field can be
-   *  completed by the browser automatically, usually by remembering 
-   *  previous values the user has entered. Common values: "off", "name",
-   *  "username", "email", "tel", "address-line1", "country-name", "bday",
-   *  "postal-code", "address-level2" (city), "address-level1" (province). */
+  /** indicates the kind of text field this is so that the field can be completed by
+   *  the browser automatically, usually by remembering previous values the user has 
+   *  entered. Common values: "off", "name", "username", "email", "tel", "address-line1", 
+   *  "country-name", "bday", "postal-code", "address-level2" (city), 
+   *  "address-level1" (province). */
   autoComplete?: string;
   /** The minimum (numeric or date/datetime) value for this input */
   min?: number|string;
@@ -331,15 +368,16 @@ interface TextInputAttributes_<T> extends TextAttributesBase<T> {
    *  or date-time value can be set. If this attribute is not set to any, the control 
    *  accepts only values at multiples of the step value greater than the minimum. */
   step?: number|"any";
-  /** indicates whether the user can enter more than one value. This attribute only 
-   *  applies when the type attribute is "email". */
+  /** indicates whether the user can enter more than one value, separated by commas.
+   *  This attribute only applies when the type attribute is "email". */
   multiple?: boolean; 
   /** A regular expression that the control's value is checked against in HTML5 
    *  browsers. A validation error occurs if the user types something that doesn't
    *  match, so `error.set()` is called if you provided it. */
   pattern?: string;
-  /** A hint to the user of what can be entered in the control */
-  placeholder?: string; 
+  /** A hint to the user of what can be entered in the control. The message is shown,
+   *  usually in gray, inside a TextBox when it is empty. */
+  placeholder?: string;
 }
 
 export interface DateInputAttributes extends TextInputAttributes_<Date|undefined>
@@ -377,83 +415,150 @@ interface TextAreaAttributes_<T> extends TextAttributesBase<T> {
   wrap?: "hard"|"soft"|"off";
 };
 
-// These methods guard against user error by not crashing if `value` is missing
+//////////////////////////////////////////////////////////////////////////////////////////////
+// Helper functions
+//////////////////////////////////////////////////////////////////////////////////////////////
+// Some of these just guard against mistakes by not crashing if `value` is missing
 function getValue<T>(props: { value: Holder<T> }): T {
   return typeof props.value === 'object' ? props.value.get : "(invalid)" as any as T;
 }
 function isDisabled<T>(props: { disabled?: boolean, value?: Holder<T> }): boolean {
   return props.disabled || !(props.value && props.value.set);
 }
-function trySet<T>(props: { value: Holder<T> }, newValue: T) {
+function trySet<T>(props: { value: Holder<T> }, newValue: T): Error|void {
   if (props.value && props.value.set)
-    props.value.set(newValue);
+    try {
+      props.value.set(newValue);
+    } catch(e) {
+      return e;
+    }
+}
+function getError(p: { error?: any }): string | JSX.Element | undefined {
+  return p.error && (p.error.set || p.error.get) ? p.error.get : p.error;
+}
+function trySetError<T>(props: { error?: string | JSX.Element | Holder<string | JSX.Element> }, msg: string) {
+  let error = props.error;
+  if (error && typeof (error as any).set === 'function')
+    (error as Holder<string|JSX.Element>).set!(msg);
+}
+function getEither<A, B, K extends (keyof A & keyof B)>(a: A, b: B, name: K): A[K] | B[K] {
+  return a && a[name] !== undefined ? a[name] : b[name];
 }
 
 const T = true;
 // These lists are used to remove all props that are invalid on underlying HTML elements.
-const LabelAttrs = { label:T, labelStyle:T, labelClass:T, labelAfter:T, p:T, inputspan:T, error:T, errorFirst:T, refInput:T };
-const LabelAttrsAndParse = { ...LabelAttrs, parse:T, stringify:T };
+const LabelAttrs = { label:T, labelStyle:T, labelClass:T, labelAfter:T, p:T, 
+                     noInputSpan:T, noErrorSpan:T, error:T, errorFirst:T, refInput:T };
+const LabelAttrsAndParse = { ...LabelAttrs, parse:T, stringify:T, keepBadText:T, showErrorEarly:T };
 const LabelAttrsAndIs = { ...LabelAttrs, is:T };
+
+interface TextBaseState { tempText?: string, hasFocus?: boolean, hadError?: boolean, parseError?: string }
 
 // Base class of TextBox and TextArea. Also used by DateBox and TimeBox.
 abstract class TextBase<T extends {}, Props extends TextAttributesBase<T>> 
-       extends Component<Props, { tempText?: string, hasFocus?: boolean }>
+       extends Component<Props, TextBaseState>
 {
   protected abstract chooseTag(p2: any): string;
   
-  state = {} as { tempText?: string, hasFocus?: boolean };
+  state: TextBaseState = {}
+  inputElement?: HTMLInputElement|HTMLTextAreaElement|null;
+  keepBadText()    { return getEither(this.props, options.validation, "keepBadText"); }
+  showErrorEarly() { return getEither(this.props, options.validation, "showErrorEarly"); }
   
   render() {
-    let p = this.props;
-    let inputProps = omit(p, LabelAttrsAndParse) as React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
-    inputProps.ref = this.props.refInput;
-    inputProps.value = this.state.tempText != null ? this.state.tempText : this.asStr(getValue(p), p.stringify);
-    inputProps.disabled = isDisabled(p);
+    let props = this.props, state = this.state, el = this.inputElement;
+    let inputProps = omit(props, LabelAttrsAndParse) as React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
+    inputProps.value = state.tempText != null ? state.tempText : this.asStr(getValue(props), props.stringify);
+    inputProps.disabled = isDisabled(props);
+
     inputProps.onBlur = () => { // lost focus
-      this.setState({ hasFocus: false, tempText: undefined });
+      let change: TextBaseState = { hasFocus: false, hadError: !!this.getError() };
+      if (!this.keepBadText())
+        change.tempText = undefined, change.parseError = "";
+      this.setState(change);
     };
     inputProps.onFocus = () => {
       this.setState({ hasFocus: true });
     };
-    inputProps.onChange = (e: any) => {
-      let value: string = e.target.value;
-      let scv = e.target.setCustomValidity || ((v: string) => {});
-      if (p.parse) {
+    inputProps.onChange = (e: ChangeEvent<HTMLInputElement|HTMLTextAreaElement>) => {
+      let value = e.target.value;
+      let changed = false;
+      let errorMsg: string | undefined;
+      if (props.parse) {
         try {
-          var result = p.parse.call(this, (e.target as any).value, getValue(p));
+          var result = props.parse.call(this, (e.target as any).value, getValue(props));
           if (!(result instanceof Error))
-            trySet(p, result);
+            result = trySet(props, result) || result;
         } catch(e) {
           result = e;
         }
+        
         // Bug fix: in FireFox the user can change an <input type="number"> without giving 
         // it focus. Avoid setting tempText without focus because it blocks external updates.
         if (this.state.hasFocus || result instanceof Error)
           this.setState({ tempText: value });
-        if (result instanceof Error) {
-          scv.call(e.target, result.message);
-        } else {
-          scv.call(e.target, ""); // no error
-        }
       } else {
         // If user did not provide a parse function, assume T is string
-        trySet(p, value as any as T);
-        scv.call(e.target, ""); // no error
+        result = trySet(props, value as any as T) || value as any as T;
       }
+      errorMsg = result instanceof Error ? result.message : undefined;
+
+      // Save the parse error. If there's no parse error, check for HTML5 error instead
+      this.setState({ parseError: errorMsg });
+      if (!errorMsg && props.error && (props.error as any).set && !el!.checkValidity())
+        errorMsg = el!.validationMessage;
+      trySetError(props, errorMsg || "");
     };
+    inputProps.ref = el => {
+      if ((this.inputElement = el) && (this.state.hadError || getError(props)))
+        trySetError(props, el.validationMessage);
+      if (this.props.refInput)
+        this.props.refInput(el);
+    }
+    //inputProps.onInvalid = e => {
+    //  console.log("onInvalid: <<" + el!.validationMessage + ">>");
+    //  let msg = el!.validationMessage;
+    //  if (trySetError(props, msg))
+    //    this.forceUpdate();
+    //};
+
     let tag = this.chooseTag(inputProps);
-    return composeWithLabel(createElement(tag, inputProps, p.children), p);
+    let error = this.getVisibleError();
+    if (el)
+      el.setCustomValidity(typeof error === 'string' ? error : "");
+    let type = tag === 'text' ? inputProps.type : tag;
+    return composeWithLabel(createElement(tag, inputProps, props.children), type, props, error || "");
   }
   asStr(val: T, stringify?: (t:T) => string) {
     if (stringify)
       return stringify(val);
     return val != null ? val.toString() : "";
   }
+  getError() {
+    /* Sources of truth for error message:
+       - Priority 1: props.error
+       - Priority 2: state.parseError
+       - Priority 3: validation message from browser
+    */
+    let el = this.inputElement;
+    if (el)
+      el.setCustomValidity(""); // we only want the browser's built-in message here
+    return getError(this.props) || this.state.parseError || el && el.validationMessage;
+  }
+  getVisibleError() {
+    // Avoid bothering the user with an error message until TextBox loses focus.
+    let state = this.state;
+    if (this.showErrorEarly() || state.hadError || (state.parseError && !this.keepBadText())) {
+      return this.getError();
+    } else {
+      return "";
+    }
+  }
 }
 
-// Render function for an input element with associated <p>, <LabelSpan>, <InputSpan> 
-// and/or <ErrorSpan>, if applicable.
-function renderInput(p: InputAttributesBase, defaultType: string|undefined, excludeAttrs: object, preferLabelAfter: boolean, attributes?: object)
+// Render function for a non-text input element with associated <p>, <LabelSpan>, 
+// <InputSpan> and/or <ErrorSpan>, if applicable.
+function renderInput(p: InputAttributesBase, defaultType: string|undefined, excludeAttrs: object, attributes?: object)
 {
   var inputProps = omit(p, excludeAttrs) as React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
   if (defaultType)
@@ -461,36 +566,41 @@ function renderInput(p: InputAttributesBase, defaultType: string|undefined, excl
   inputProps.disabled = isDisabled(p);
   inputProps.ref = p.refInput;
   assign(inputProps, attributes);
-  return composeWithLabel(createElement("input", inputProps, p.children), p, preferLabelAfter);
+  return composeWithLabel(createElement("input", inputProps, p.children), inputProps.type, p, getError(p));
 }
 
-// Wraps an element in a <Label>, <p> and/or <InputSpan> depending on its props
-export function composeWithLabel(el: JSX.Element, p: LabelProps, preferLabelAfter?: boolean, inputSpan?: boolean) {
-  return (options.composeElementWithLabel || defaultComposer)(el, p, preferLabelAfter, inputSpan);
+// Combine an element with <p>, <Label>, <InputSpan> and/or <ErrorSpan> depending on its props.
+export function composeWithLabel(el: JSX.Element, type: string|undefined, p: LabelProps, error?: string | JSX.Element) {
+  return (options.composeElementWithLabel || defaultComposer)(el, type, p, error);
 }
-function defaultComposer(el: JSX.Element, p: LabelProps, preferLabelAfter?: boolean, inputSpan?: boolean)
-{
-  let error = p.error;
-  if (error !== undefined) {
-    let holder: Holder<string|JSX.Element> | undefined;
-    if ((error as any).set || (error as any).get) {
-      holder = error as Holder<string|JSX.Element>;
-      error = holder.get;
+function defaultComposer(el: JSX.Element, type: string|undefined, p: LabelProps, error?: string | JSX.Element) {
+  let preferLabelAfter = type === "checkbox" || type === "radio";
+  let isTextBox = !preferLabelAfter && type !== "range" && type !== "button" && type !== "color";
+  let labelAfter = p.labelAfter !== undefined ? p.labelAfter : preferLabelAfter;
+  let label = p.label;
+  let noInputSpan = p.noInputSpan;
+  let oes = options.errorSpan;
+  if (!p.noErrorSpan && (error || oes.emitEmptyForText && isTextBox) && (oes.class || oes.style)) {
+    if (error == null || typeof error === 'string')
+      error = <ErrorSpan>{error}</ErrorSpan>;
+
+    if (labelAfter && label !== undefined) { // Special case: place InputSpan outside Label
+      el = <Label labelClass={p.labelClass} labelStyle={p.labelStyle}
+                  labelAfter={true} label={label} p={p.p} noInputSpan>
+             {el}
+           </Label>;
+      label = undefined;
     }
-    if (error !== undefined) {
-      if (typeof error === 'string')
-        error = <ErrorSpan>{error}</ErrorSpan>;
-      el = p.errorFirst ? <InputSpan>{error}{el}</InputSpan> : <InputSpan>{el}{error}</InputSpan>;
-      inputSpan = false;
-    }
+    el = p.errorFirst ? <InputSpan>{error}{el}</InputSpan> : <InputSpan>{el}{error}</InputSpan>;
+    noInputSpan = true;
   }
-  if (p.label === undefined)
-    return p.p ? <p>el</p> : el;
+  if (label === undefined)
+    return p.p ? <p>{el}</p> : el;
   return (
     <Label labelClass={p.labelClass} labelStyle={p.labelStyle}
-           labelAfter={p.labelAfter !== undefined ? p.labelAfter : preferLabelAfter}
-           label={p.label} p={p.p}
-           inputspan={inputSpan != null ? inputSpan : p.inputspan}>
+            labelAfter={labelAfter}
+            label={label} p={p.p}
+            noInputSpan={noInputSpan}>
       {el}
     </Label>);
 }
@@ -549,13 +659,16 @@ export function DateBox(props: DateInputAttributes) {
  *  is not supported by FireFox, Safari or Internet Explorer (as of 2020/04).
  */
 export function DateTimeBox(props: DateTimeInputAttributes) {
+  let p1 = {...props, noInputSpan: true};
   let p2 = omit(props, LabelAttrs);
+  p2.noErrorSpan = true;
   return composeWithLabel(
     <InputSpan>
       {createElement(DateBox, p2)}
       {createElement(TimeBox, p2)}
     </InputSpan>,
-    props, undefined, false);
+    'datetime-local', // not really, but maybe it will be someday
+    p1, getError(p1));
 }
 
 /** Parses a date if it is in the form YYYY-MM-DD or YYYY-MM-DD hh:mm,
@@ -642,14 +755,14 @@ export function parse24hTime(value: string|undefined, day?: Date, utc?: boolean)
  */
 export function CheckBox(props: InputAttributes<boolean>)
 {
-  return renderInput(props, "checkbox", LabelAttrs, true, {
+  return renderInput(props, "checkbox", LabelAttrs, {
     checked: getValue(props),
     onChange: (e: any) => {trySet(props, e.target.checked);}
   });
 }
 
 /** Wrapper for `<input type="radio">` based on `Holder<T>`.
- *  Can have a label. Example: 
+ *  Can have a label and/or error. Example: 
  * 
  *      <Radio value={holder} is={true} label="Yes"/>
  *      <Radio value={holder} is={false} label="No"/>
@@ -665,7 +778,7 @@ export function CheckBox(props: InputAttributes<boolean>)
  */
 export function Radio<T>(props: RadioAttributesWorkaround<T>)
 {
-  return renderInput(props, "radio", LabelAttrsAndIs, true, {
+  return renderInput(props, "radio", LabelAttrsAndIs, {
     checked: props.is !== undefined ? getValue(props) == props.is : !!getValue(props),
     onChange: (e: any) => {
       if (e.target.checked)
@@ -690,19 +803,20 @@ export interface FileButtonAttributes extends ButtonAttributes {
   required?: boolean;
 }
 
-/** A simple wrapper for `<button>` that can have a label. 
+/** A simple wrapper for `<button>` that can have a label and/or error.
  *  Does not use a Holder. */
 export function Button(p: ButtonAttributes)
 {
-  var p2 = omit(p, LabelAttrs) as any;
-  return composeWithLabel(createElement(p.type ? "input" : "button", p2, p.children), p, false);
+  let p2 = omit(p, LabelAttrs) as any;
+  let type = p.type ? "input" : "button";
+  return composeWithLabel(createElement(type, p2, p.children), type, p, getError(p));
 }
 
 /** Wrapper for `<input type="file">`, the file selector element, that
- *  can have a label. Does not use a Holder. */
+ *  can have a label and/or error. Does not use a Holder. */
 export function FileButton(p: FileButtonAttributes)
 {
-  return renderInput(p, "file", LabelAttrs, false);
+  return renderInput(p, "file", LabelAttrs);
 }
 
 /** Wrapper for `<input type="range">`, the horizontal slider element, 
@@ -710,15 +824,28 @@ export function FileButton(p: FileButtonAttributes)
 export function Range(p: SliderAttributes) { return Slider(p); }
 
 /** Wrapper for `<input type="range">`, the horizontal slider element,
- *  based on `Holder<T>`. Can have a label. Example:
+ *  based on `Holder<T>`. Can have a label and/or error. Example:
  * 
  *      <Slider value={numberHolder} min={-10} max={10} step={1}/>
  **/
 export function Slider(p: SliderAttributes)
 {
-  return renderInput(p, "range", LabelAttrs, false, {
+  return renderInput(p, "range", LabelAttrs, {
     value: getValue(p),
     onChange: (e: any) => { trySet(p, parseFloat(e.target.value)); }
+  });
+}
+
+/** Wrapper for `<input type="color">`, the color picker element,
+ *  based on `Holder<T>`. Can have a label and/or error. Example:
+ * 
+ *      <Slider value={numberHolder} min={-10} max={10} step={1}/>
+ **/
+export function ColorPicker(p: ColorPickerAttributes)
+{
+  return renderInput(p, "color", LabelAttrs, {
+    value: getValue(p),
+    onChange: (e: any) => { trySet(p, e.target.value); }
   });
 }
 

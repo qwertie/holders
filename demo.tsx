@@ -11,6 +11,8 @@ var h = React.createElement;
 var createElement = React.createElement; // the code hasn't changed, but now TypeScript is calling createElement
 var useState = React.useState;
 
+options.errorSpan.emitEmptyForText = true;
+
 //////////////////////////////////////////////////////////////////////////
 // Demo 1: Form with separate model (App class connects the two together)
 //////////////////////////////////////////////////////////////////////////
@@ -33,8 +35,11 @@ class Model {
 
 // A simple form
 function PersonForm(m: Holders<Model>) {
+  let age = asAge(m.birthdate);
   return <form>
     <TextBox p label="Name:"  required value={m.name} autoComplete="name" placeholder="First Last"/>
+    <TextBox p label="Age:"            value={asAge(m.birthdate)}  type="number"
+             parse={text => (age.set(parseFloat(text)), age.get)}/>
     <DateBox p label="Birthdate:"      value={m.birthdate} autoComplete="bday"/>
     <TextBox p label="Address:"        value={m.address}  autoComplete="address-line1"/>
     <TextBox p label="City:"           value={m.city}     autoComplete="address-level2" maxLength={30}/>
@@ -51,6 +56,26 @@ function PersonForm(m: Holders<Model>) {
       <Radio label="Female" value={{get: true}}/>
     </Label>
   </form>;
+}
+
+function asAge(date: Holder<Date|undefined>): Holder<number> {
+  const msPerYear = 1000*60*60*24*365.2422; // milliseconds per year
+  let age = {
+    get get() {
+      if (date.get)
+        return Math.floor((new Date() as any - (date.get as any)) / msPerYear);
+    },
+    set(value: number) {
+      console.log(value);
+      if (!(value === value) || value < 0 || value > 500)
+        throw new Error("Invalid age (should be between 0 and 500).");
+      let changeInYears = (age.get || 0) - value;
+      let newDate = date.get || new Date();
+      newDate.setFullYear(newDate.getFullYear() + changeInYears);
+      date.set(newDate);
+    }
+  };
+  return age;
 }
 
 //////////////////////////////////////////////////////////////////////////
