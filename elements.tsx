@@ -5,20 +5,6 @@ export * from './holders';
 /* @jsx h */
 var h = createElement;
 
-/********************************************************************************************
- * Form Elements: Project Goals
- * ----------------------------
- * 
- * - be easy and concise to use (see readme.md)
- * - be small (well under 10K when minified)
- * - be flexible (has global `options`, has various props for customization)
- * - be well-documented
- * - be minimal but complete. All advanced functionality (e.g. Date input, autocomplete, 
- *   validation) is offloaded to the browser as much as possible, and styling is left up to 
- *   CSS (see demo.css for example styling). The browser validation API is badly designed, 
- *   though, so this library augments the built-in support.
- ********************************************************************************************/
-
 /** Labeling properties that can be attached to labelable elements such as
  *  Label, TextBox, TextArea, CheckBox, Radio, Button, and Slider. 
  *  Also includes props for displaying validation errors. */
@@ -296,12 +282,6 @@ interface DerivedInterface_<T> extends BaseInterface<T> {
   /* ... other props */
 }
 
-export type ConvertsToString<T> = T extends string ? {} : 
-     {parse: Parse<T>} &
-       (T extends {toString(): string} ? {} : {stringify(t:T): string});
-
-type Parse<T> = (this: TextBase<T, TextAttributesBase<T>>, input:string, oldValue: T) => T|Error;
-
 export interface TextAttributesBase<T> extends InputAttributes<T> {
   /** A function that parses the input string into the internal format
    *  expected by the model. This function is called on every keypress. 
@@ -333,6 +313,8 @@ export interface TextAttributesBase<T> extends InputAttributes<T> {
    */
   showErrorEarly?: boolean;
 }
+
+type Parse<T> = (this: TextBase<T, TextAttributesBase<T>>, input:string, oldValue: T) => T|Error;
 
 /** TypeScript 3.x can no longer infer T when TextInputAttributes<T> is used. Using this instead. */
 export type TextInputAttributesWorkaround<T> = TextInputAttributes_<T> & {parse?: Parse<T>, stringify?: (t:T) => string};
@@ -380,6 +362,10 @@ interface TextInputAttributes_<T> extends TextAttributesBase<T> {
   placeholder?: string;
 }
 
+export type ConvertsToString<T> = T extends string ? {} : 
+     {parse: Parse<T>} &
+       (T extends {toString(): string} ? {} : {stringify(t:T): string});
+
 export interface DateInputAttributes extends TextInputAttributes_<Date|undefined>
 {
   utc?: boolean;
@@ -414,6 +400,20 @@ interface TextAreaAttributes_<T> extends TextAttributesBase<T> {
   /** Text wrapping mode. */
   wrap?: "hard"|"soft"|"off";
 };
+
+/** Attributes that apply to `<FileButton>` (`<input type="file">` elements). */
+export interface FileButtonAttributes extends ButtonAttributes {
+  /** Indicates the types of files that the server accepts as a
+   *  comma separated list of MIME types and extensions, e.g. 
+   *  ".doc,.docx,.xml,application/msword". This provides a hint 
+   *  for browsers to guide users towards selecting the correct 
+   *  file types. */
+  accept?: string;
+  /** Indicates whether the user can select more than one file. */
+  multiple?: boolean;
+  /** Specifies that the user must fill in a value before submitting a form. The :optional and :required CSS pseudo-classes will be applied to the field as appropriate. */
+  required?: boolean;
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -515,12 +515,6 @@ abstract class TextBase<T extends {}, Props extends TextAttributesBase<T>>
       if (this.props.refInput)
         this.props.refInput(el);
     }
-    //inputProps.onInvalid = e => {
-    //  console.log("onInvalid: <<" + el!.validationMessage + ">>");
-    //  let msg = el!.validationMessage;
-    //  if (trySetError(props, msg))
-    //    this.forceUpdate();
-    //};
 
     let tag = this.chooseTag(inputProps);
     let error = this.getVisibleError();
@@ -787,20 +781,6 @@ export function Radio<T>(props: RadioAttributesWorkaround<T>)
         trySet(props, false as any as T);
     }
   });
-}
-
-/** Attributes that apply to `<input type="file">` elements. */
-export interface FileButtonAttributes extends ButtonAttributes {
-  /** Indicates the types of files that the server accepts as a
-   *  comma separated list of MIME types and extensions, e.g. 
-   *  ".doc,.docx,.xml,application/msword". This provides a hint 
-   *  for browsers to guide users towards selecting the correct 
-   *  file types. */
-  accept?: string;
-  /** Indicates whether the user can select more than one file. */
-  multiple?: boolean;
-  /** Specifies that the user must fill in a value before submitting a form. The :optional and :required CSS pseudo-classes will be applied to the field as appropriate. */
-  required?: boolean;
 }
 
 /** A simple wrapper for `<button>` that can have a label and/or error.
