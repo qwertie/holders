@@ -5,12 +5,27 @@ export * from './holders';
 /* @jsx h */
 var h = createElement;
 
+/********************************************************************************************
+ * Form Elements: Project Goals
+ * ----------------------------
+ * 
+ * - be easy and concise to use (see readme.md)
+ * - be small (well under 10K when minified)
+ * - be flexible (has global `options`, has various props for customization)
+ * - be well-documented
+ * - be minimal but complete. All advanced functionality (e.g. Date input, autocomplete, 
+ *   validation) is offloaded to the browser as much as possible, and styling is left up to 
+ *   CSS (see demo.css for example styling). The browser validation API is badly designed, 
+ *   though, so this library augments the built-in support.
+ ********************************************************************************************/
+
 /** Labeling properties that can be attached to labelable elements such as
- *  Label, TextBox, TextArea, CheckBox, Radio, Button, and Slider. */
+ *  Label, TextBox, TextArea, CheckBox, Radio, Button, and Slider. 
+ *  Also includes props for displaying validation errors. */
 export interface LabelProps {
   /** If true, the label element is wrapped in a `<p>` element to add a line break. */
   p?: boolean;
-  /** The label text string or element that is placed in a span, just inside the label. */
+  /** The label text string or element that is placed just inside the label, in a span. */
   label?: React.ReactNode;
   /** The className of the span that holds the label text (the default is labelspan). */
   labelClass?: string;
@@ -23,82 +38,136 @@ export interface LabelProps {
    *  in a `<span class="inputspan">` element. Setting `inputspan={false}` will remove
    *  that span element. */
   inputspan?: boolean;
+  /** An optional message displayed after (or before) the element. User-defined CSS
+   *  is required to make this look good; by default it'll have className="errorspan".
+   *  If you provide a parse function and it fails, its error message overrides this
+   *  property. If this is a string, the standard `setCustomValidity` method is called 
+   *  on it.
+   *
+   *  By default, an error also causes the element to be marked invalid using the HTML5
+   *  `setCustomValidity` API, but this doesn't happen if error is an element (that API 
+   *  does not support anything but plain text).
+   * 
+   *  The elements in this library also watch for the HTML5 `validationMessage` associated
+   *  with the element. If this property `== null` (or if it is a `Holder` with 
+   *  `.get == null`), the HTML5 validation message will be shown instead. If this
+   *  property is a Holder and it has a setter, the input element will call the `.set()`
+   *  function when an HTML5 validation error event occurs.
+   */
+  error?: string | JSX.Element | Holder<string | JSX.Element>;
+  /** Whether the error property is displayed before the element itself. */
+  errorFirst?: boolean;
 }
 
-/** Any elements in this module that have a label will use these settings when you have
- *  not provided labelClass, labelStyle or labelAfter props. If any of these props are
- *  specified, the class and style specified here are not used. This is also the default 
- *  class and style of the LabelSpan component in this module (again, these settings will 
- *  not be used if labelClass, labelStyle or labelAfter props are used.)
- */
-export var DefaultLabelSpan = { class: "labelspan", style: undefined as React.CSSProperties|undefined };
+/** This is the type of the global `options` variable. */
+export interface FormOptions
+{
+  /** Any elements in this module that have a label will use these settings when you have
+   *  not provided labelClass, labelStyle or labelAfter props. If any of these props are
+   *  specified, the class and style specified here are not used. This is also the default 
+   *  class and style of the LabelSpan component in this module (again, these settings will 
+   *  not be used if labelClass, labelStyle or labelAfter props are used.)
+   */
+  labelSpan: { class: string, style: React.CSSProperties|undefined };
 
-/** When you are using an element in this module and you provide a "label" setting,
- *  the input element (or textarea element, or whatever) will be wrapped in a <span>
- *  with the class and style specified here. For example, if you just write
- *  
- *      <TextBox value={m.name} autoComplete="name"/>
- *  
- *  it produces HTML like
- *  
- *      <input type="text" value="" autocomplete="name"> (with events attached)
- * 
- *  but if you add a label like
- *  
- *      <TextBox label="Name:" value={m.name} autoComplete="name"/>
- * 
- *  then in addition to a label element, new spans appear based on the settings in
- *  `DefaultLabelSpan` and `DefaultInputSpan`:
- * 
- *      <label>
- *        <span class="labelspan">Name:</span>
- *        <span class="inputspan"><input type="text" value="" autocomplete="name"></span>
- *      </label>
- *  
- *  If you add a `p` property, the above HTML is also wrapped in a `<p>` element. 
- *  This works well with CSS such as the following, which displays the input elements 
- *  either on the same line or the next line after the labelspan, depending on the
- *  width available:
- * 
- *  form p, form p > label:only-child {
- *    display: flex;
- *    flex-flow: row wrap;
- *    align-items: center;
- *    width: 100%;
- *  }
- *  .labelspan {
- *    flex: 1 0;
- *    min-width: 10em;
- *  }
- *  .labelspan ~ .inputspan {
- *    flex: 2 0;
- *    min-width: 15em;
- *  }
- *  textarea, input[type="text"] {
- *    width: 100%;
- *  }
- *  
- */
-export var DefaultInputSpan = { class: "inputspan", style: undefined as React.CSSProperties|undefined };
+  /** When you are using an element in this module and you provide a "label" setting,
+   *  the input element (or textarea element, or whatever) will be wrapped in a <span>
+   *  with the class and style specified here. For example, if you just write
+   *  
+   *      <TextBox value={m.name} autoComplete="name"/>
+   *  
+   *  it produces HTML like
+   *  
+   *      <input type="text" value="" autocomplete="name"> (with events attached)
+   * 
+   *  but if you add a label like
+   *  
+   *      <TextBox label="Name:" value={m.name} autoComplete="name"/>
+   * 
+   *  then in addition to a label element, new spans appear based on the settings in
+   *  `options.labelSpan` and `options.inputSpan`:
+   * 
+   *      <label>
+   *        <span class="labelspan">Name:</span>
+   *        <span class="inputspan"><input type="text" value="" autocomplete="name"></span>
+   *      </label>
+   *  
+   *  If you add a `p` property, the above HTML is also wrapped in a `<p>` element. 
+   *  This works well with CSS such as the following, which displays the input elements 
+   *  either on the same line or the next line after the labelspan, depending on the
+   *  width available:
+   * 
+   *  form p, form p > label:only-child {
+   *    display: flex;
+   *    flex-flow: row wrap;
+   *    align-items: center;
+   *    width: 100%;
+   *  }
+   *  .labelspan {
+   *    flex: 1 0;
+   *    min-width: 10em;
+   *  }
+   *  .labelspan ~ .inputspan {
+   *    flex: 2 0;
+   *    min-width: 15em;
+   *  }
+   *  textarea, input[type="text"] {
+   *    width: 100%;
+   *  }
+   * 
+   *  If the described arrangement of elements is not what you need, it is at least possible 
+   *  to globally override the way the input element, the label, and the error are combined:
+   *  override the value of `options.composeElementWithLabel`
+   */
+  inputSpan: { class: string, style: React.CSSProperties|undefined };
+  
+  /** Default settings (class and style) for the optional message displayed inside the 
+   *  inputspan, after (or before) an input element from this library. The so-called error 
+   *  span is added to the DOM only if the `error` prop is set, or if the `parse` function
+   *  of a TextBox/TextArea fails.
+   **/
+  errorSpan: { class: string, style: React.CSSProperties|undefined };
+
+  /** This function's job is to combine an element (such as <input>, <button> or <textarea>) 
+   *  with <p>, <Label>, <LabelSpan>, <InputSpan> and/or <ErrorSpan> depending on its props.
+   * 
+   * @param el A virtual element such as an <input>, <button> or <textarea>.
+   * @param p  Options for labeling and error display
+   * @param preferLabelAfter Checkboxes set this to true, indicating they prefer the label
+   *        to appear after the checkbox. All other elements use false for this argument.
+   *        `p.labelAfter` should take precedence, if provided.
+   * @param inputSpan If this is not `undefined`, it should override `p.inputSpan`. 
+   *        This `=== false` if the `el` is composite and is already wrapped in an inputspan.
+   */
+  composeElementWithLabel: (el: JSX.Element, p: LabelProps, preferLabelAfter?: boolean, inputSpan?: boolean) => JSX.Element
+}
+
+/** See FormOptions for documentation. */
+export var options: FormOptions = {
+  labelSpan: { class: "labelspan", style: undefined },
+  inputSpan: { class: "inputspan", style: undefined },
+  errorSpan: { class: "errorspan", style: undefined },
+  composeElementWithLabel: defaultComposer
+};
 
 /** Wraps elements or components in a `<label>` element (and optional `<p>` element),
  *  for example, `<Label label="Hello"><TextBox value={x}/></Label>` is rendered like
  *  
  *      <label>
- *        <span style={DefaultLabelSpan.style} class={DefaultLabelSpan.class}>Hello</span>
- *        <span style={DefaultInputSpan.style} class={DefaultInputSpan.class}>
+ *        <span style={options.labelSpan.style} class={options.labelSpan.class}>Hello</span>
+ *        <span style={options.inputSpan.style} class={options.inputSpan.class}>
  *          <TextBox value={x}/>
  *        </span>
  *      </label>
  *  
  *  It is possible to suppress the second `<span>` (leaving a bare TextBox) with a
  *  `labelspan={false}` property. It can be suppressed globally by setting both 
- *  `DefaultInputSpan.class = undefined` and `DefaultInputSpan.style = undefined`.
+ *  `options.inputSpan.class = undefined` and `options.inputSpan.style = undefined`.
  */
 export function Label(p: LabelProps & HTMLAttributes<HTMLElement>) {
-  let dis = DefaultInputSpan;
+  let ois = options.inputSpan;
   var children = p.children;
-  if (p.inputspan !== false && (dis.class || dis.style))
+  if (p.inputspan !== false && (ois.class || ois.style))
     children = <InputSpan>{children}</InputSpan>;
   var label = createElement("label", omit(p, LabelAttrs), 
     ...(p.labelAfter ? [children, LabelSpan(p)] : [LabelSpan(p), children]));
@@ -108,13 +177,18 @@ export function Label(p: LabelProps & HTMLAttributes<HTMLElement>) {
 /** Subcomponent for the `<span>` of label text within a Label. */
 export function LabelSpan(p: LabelProps & { children?: React.ReactNode }) {
   var auto = !(p.labelStyle || p.labelClass || p.labelAfter);
-  return <span className={auto ? DefaultLabelSpan.class : p.labelClass} 
-                   style={auto ? DefaultLabelSpan.style : p.labelStyle}>{p.label || p.children}</span>;
+  return <span className={auto ? options.labelSpan.class : p.labelClass} 
+                   style={auto ? options.labelSpan.style : p.labelStyle}>{p.label || p.children}</span>;
 }
 
 export function InputSpan(p: { children: React.ReactNode }): JSX.Element {
-  let dis = DefaultInputSpan;
-  return <span className={dis.class} style={dis.style}>{p.children}</span>;
+  let ois = options.inputSpan;
+  return <span className={ois.class} style={ois.style}>{p.children}</span>;
+}
+
+export function ErrorSpan(p: { children: React.ReactNode }): JSX.Element {
+  let oes = options.errorSpan;
+  return <span className={oes.class} style={oes.style}>{p.children}</span>;
 }
 
 /** Attributes that apply to all `input` elements including simple buttons */
@@ -128,15 +202,22 @@ export interface InputAttributesBase extends React.HTMLAttributes<HTMLElement>, 
   /** Styles of the label text (not the label element, but the text inside, which is a span.)
    *  If there is no labelClass and no labelStyle then DefaultLabelStyle is used. */
   labelStyle?: React.CSSProperties;
+  /** A callback that is called by React when the TextBox or TextArea is mounted */
+  refInput?: (el: HTMLElement|null) => void;
+  
+  // Standard HTML attributes
   /** Prevents the user from interacting with the input. */
   disabled?: boolean;
   /** Specifies that the input should have focus when the page loads. */
   autoFocus?: boolean;
-  /** The form element that the input element is associated with (its form owner). The value of the attribute must be an id of a <form> element in the same document. If this attribute isn't used, the <input> element is associated with its nearest ancestor <form> element, if any. */
+  /** The form element that the input element is associated with (its form owner). The value of the 
+   *  attribute must be an id of a <form> element in the same document. If this attribute isn't used,
+   *  the <input> element is associated with its nearest ancestor <form> element, if any. */
   form?: string;
   /** The position of the element in the tabbing navigation order for the current document. */
   tabIndex?: number;
-  /** Specifies that the user must fill in a value before submitting a form. The :optional and :required CSS pseudo-classes will be applied to the field as appropriate. */
+  /** Specifies that the user must fill in a value before submitting a form. The :optional and 
+   *  :required CSS pseudo-classes will be applied to the field as appropriate. */
   required?: boolean;
 }
 
@@ -149,7 +230,8 @@ export interface ButtonAttributes extends InputAttributesBase {
 export interface InputAttributes<T> extends InputAttributesBase {
   /** Current value associated with the form element. */
   value: Holder<T>;
-  /** Prevents the user from modifying the value of the input (without changing the widget's appearance) */
+  /** Prevents the user from modifying the value of the input. This does not change 
+   *  the widget's appearance; to gray it out, set disabled instead. */
   readOnly?: boolean;
   /** The name of the control, which is submitted with the control's value as part of the form data. */
   name?: string;
@@ -178,7 +260,9 @@ export interface SliderAttributes extends InputAttributes<number> {
   min: number;
   /** The maximum (numeric or date/datetime) value for this input */
   max: number;
-  /** Works with the min and max attributes to limit the increments at which a numeric or date-time value can be set. If this attribute is not set to any, the control accepts only values at multiples of the step value greater than the minimum. */
+  /** Works with the min and max attributes to limit the increments at which a numeric or 
+   *  date-time value can be set. If this attribute is not set to any, the control accepts 
+   *  only values at multiples of the step value greater than the minimum. */
   step?: number;
   /** Indicates the kind of text field this is so that the field can be
    *  completed by the browser automatically. */
@@ -200,7 +284,7 @@ export type ConvertsToString<T> = T extends string ? {} :
      {parse: Parse<T>} &
        (T extends {toString(): string} ? {} : {stringify(t:T): string});
 
-type Parse<T> = (input:string, oldValue: T) => T|Error;
+type Parse<T> = (this: TextBase<T, TextAttributesBase<T>>, input:string, oldValue: T) => T|Error;
 
 export interface TextAttributesBase<T> extends InputAttributes<T> {
   /** A function that parses the input string into the internal format
@@ -243,11 +327,16 @@ interface TextInputAttributes_<T> extends TextAttributesBase<T> {
   min?: number|string;
   /** The maximum (numeric or date/datetime) value for this input */
   max?: number|string;
-  /** Works with the min and max attributes to limit the increments at which a numeric or date-time value can be set. If this attribute is not set to any, the control accepts only values at multiples of the step value greater than the minimum. */
+  /** Works with the min and max attributes to limit the increments at which a numeric 
+   *  or date-time value can be set. If this attribute is not set to any, the control 
+   *  accepts only values at multiples of the step value greater than the minimum. */
   step?: number|"any";
-  /** indicates whether the user can enter more than one value. This attribute only applies when the type attribute is "email". */
+  /** indicates whether the user can enter more than one value. This attribute only 
+   *  applies when the type attribute is "email". */
   multiple?: boolean; 
-  /** A regular expression that the control's value is checked against in HTML5 browsers. */
+  /** A regular expression that the control's value is checked against in HTML5 
+   *  browsers. A validation error occurs if the user types something that doesn't
+   *  match, so `error.set()` is called if you provided it. */
   pattern?: string;
   /** A hint to the user of what can be entered in the control */
   placeholder?: string; 
@@ -288,39 +377,52 @@ interface TextAreaAttributes_<T> extends TextAttributesBase<T> {
   wrap?: "hard"|"soft"|"off";
 };
 
-function getValue<T>(props: { value?: Holder<T> }): T {
+// These methods guard against user error by not crashing if `value` is missing
+function getValue<T>(props: { value: Holder<T> }): T {
   return typeof props.value === 'object' ? props.value.get : "(invalid)" as any as T;
 }
+function isDisabled<T>(props: { disabled?: boolean, value?: Holder<T> }): boolean {
+  return props.disabled || !(props.value && props.value.set);
+}
+function trySet<T>(props: { value: Holder<T> }, newValue: T) {
+  if (props.value && props.value.set)
+    props.value.set(newValue);
+}
 
-const LabelAttrs = ['label', 'labelStyle', 'labelClass', 'labelAfter', 'p'];
-const LabelAttrsAndParse = LabelAttrs.concat('parse', 'stringify');
-const LabelAttrsAndIs = LabelAttrs.concat('is');
+const T = true;
+// These lists are used to remove all props that are invalid on underlying HTML elements.
+const LabelAttrs = { label:T, labelStyle:T, labelClass:T, labelAfter:T, p:T, inputspan:T, error:T, errorFirst:T, refInput:T };
+const LabelAttrsAndParse = { ...LabelAttrs, parse:T, stringify:T };
+const LabelAttrsAndIs = { ...LabelAttrs, is:T };
 
 // Base class of TextBox and TextArea. Also used by DateBox and TimeBox.
 abstract class TextBase<T extends {}, Props extends TextAttributesBase<T>> 
        extends Component<Props, { tempText?: string, hasFocus?: boolean }>
 {
   protected abstract chooseTag(p2: any): string;
+  
   state = {} as { tempText?: string, hasFocus?: boolean };
-  render()
-  {
+  
+  render() {
     let p = this.props;
-    let p2 = omit(p, LabelAttrsAndParse) as React.InputHTMLAttributes<HTMLInputElement>;
-    p2.value = this.state.tempText != null ? this.state.tempText : asStr(getValue(p), p.stringify);
-    p2.onBlur = () => { // lost focus
+    let inputProps = omit(p, LabelAttrsAndParse) as React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
+    inputProps.ref = this.props.refInput;
+    inputProps.value = this.state.tempText != null ? this.state.tempText : this.asStr(getValue(p), p.stringify);
+    inputProps.disabled = isDisabled(p);
+    inputProps.onBlur = () => { // lost focus
       this.setState({ hasFocus: false, tempText: undefined });
     };
-    p2.onFocus = () => {
+    inputProps.onFocus = () => {
       this.setState({ hasFocus: true });
     };
-    p2.onChange = (e: any) => {
+    inputProps.onChange = (e: any) => {
       let value: string = e.target.value;
       let scv = e.target.setCustomValidity || ((v: string) => {});
       if (p.parse) {
         try {
-          var result = p.parse((e.target as any).value, getValue(p));
+          var result = p.parse.call(this, (e.target as any).value, getValue(p));
           if (!(result instanceof Error))
-            p.value.set(result);
+            trySet(p, result);
         } catch(e) {
           result = e;
         }
@@ -335,39 +437,60 @@ abstract class TextBase<T extends {}, Props extends TextAttributesBase<T>>
         }
       } else {
         // If user did not provide a parse function, assume T is string
-        p.value.set(value as any as T);
+        trySet(p, value as any as T);
         scv.call(e.target, ""); // no error
       }
     };
-    let tag = this.chooseTag(p2);
-    return maybeWrapInLabel(p, createElement(tag, p2, p.children));
-
-    function asStr(val: T, stringify?: (t:T) => string) {
-      if (stringify)
-        return stringify(val);
-      else
-        return val != null ? val.toString() : "";
-    }
+    let tag = this.chooseTag(inputProps);
+    return composeWithLabel(createElement(tag, inputProps, p.children), p);
+  }
+  asStr(val: T, stringify?: (t:T) => string) {
+    if (stringify)
+      return stringify(val);
+    return val != null ? val.toString() : "";
   }
 }
 
-function renderInput(p: any, defaultType: string|undefined, excludeAttrs: string[], preferLabelAfter: boolean, attributes?: object)
+// Render function for an input element with associated <p>, <LabelSpan>, <InputSpan> 
+// and/or <ErrorSpan>, if applicable.
+function renderInput(p: InputAttributesBase, defaultType: string|undefined, excludeAttrs: object, preferLabelAfter: boolean, attributes?: object)
 {
-  var p2 = omit(p, excludeAttrs) as any;
+  var inputProps = omit(p, excludeAttrs) as React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
   if (defaultType)
-    p2.type || (p2.type = defaultType);
-  assign(p2, attributes);
-  return maybeWrapInLabel(p, createElement("input", p2, p.children), preferLabelAfter)
+    inputProps.type || (inputProps.type = defaultType);
+  inputProps.disabled = isDisabled(p);
+  inputProps.ref = p.refInput;
+  assign(inputProps, attributes);
+  return composeWithLabel(createElement("input", inputProps, p.children), p, preferLabelAfter);
 }
 
-function maybeWrapInLabel(p: LabelProps, el: JSX.Element, preferAfter?: boolean)
+// Wraps an element in a <Label>, <p> and/or <InputSpan> depending on its props
+export function composeWithLabel(el: JSX.Element, p: LabelProps, preferLabelAfter?: boolean, inputSpan?: boolean) {
+  return (options.composeElementWithLabel || defaultComposer)(el, p, preferLabelAfter, inputSpan);
+}
+function defaultComposer(el: JSX.Element, p: LabelProps, preferLabelAfter?: boolean, inputSpan?: boolean)
 {
+  let error = p.error;
+  if (error !== undefined) {
+    let holder: Holder<string|JSX.Element> | undefined;
+    if ((error as any).set || (error as any).get) {
+      holder = error as Holder<string|JSX.Element>;
+      error = holder.get;
+    }
+    if (error !== undefined) {
+      if (typeof error === 'string')
+        error = <ErrorSpan>{error}</ErrorSpan>;
+      el = p.errorFirst ? <InputSpan>{error}{el}</InputSpan> : <InputSpan>{el}{error}</InputSpan>;
+      inputSpan = false;
+    }
+  }
   if (p.label === undefined)
     return p.p ? <p>el</p> : el;
   return (
     <Label labelClass={p.labelClass} labelStyle={p.labelStyle}
-           labelAfter={p.labelAfter !== undefined ? p.labelAfter : preferAfter}
-           label={p.label} p={p.p} inputspan={p.inputspan}>
+           labelAfter={p.labelAfter !== undefined ? p.labelAfter : preferLabelAfter}
+           label={p.label} p={p.p}
+           inputspan={inputSpan != null ? inputSpan : p.inputspan}>
       {el}
     </Label>);
 }
@@ -411,7 +534,7 @@ export class TextArea<T> extends TextBase<T, TextAreaAttributesWorkaround<T>>
  *  because IE requires the user to actually type a Date.
  **/
 export function DateBox(props: DateInputAttributes) {
-  var p2 = omit(props, ['utc']);
+  var p2 = omit(props, { utc:T });
   p2.type || (p2.type = "date");
   p2.placeholder || (p2.placeholder = "YYYY-MM-DD"); // for IE
   p2.parse = (s:string, oldVal:Date|undefined) => parseDate(s, props.utc, oldVal);
@@ -426,13 +549,13 @@ export function DateBox(props: DateInputAttributes) {
  *  is not supported by FireFox, Safari or Internet Explorer (as of 2020/04).
  */
 export function DateTimeBox(props: DateTimeInputAttributes) {
-  let p1: LabelProps = {...props, inputspan: false};
   let p2 = omit(props, LabelAttrs);
-  return maybeWrapInLabel(p1, 
+  return composeWithLabel(
     <InputSpan>
       {createElement(DateBox, p2)}
       {createElement(TimeBox, p2)}
-    </InputSpan>);
+    </InputSpan>,
+    props, undefined, false);
 }
 
 /** Parses a date if it is in the form YYYY-MM-DD or YYYY-MM-DD hh:mm,
@@ -475,7 +598,7 @@ export function dateToString(d: Date|undefined, utc?: boolean): string|undefined
  *  the current date is used as the default. Can have a label.
  */
 export function TimeBox(props: TimeInputAttributes) {
-  var p2 = omit(props, ['utc']) as any;
+  var p2 = omit(props, { utc:T }) as any;
   p2.type || (p2.type = "time");
   p2.placeholder || (p2.placeholder = "hh:mm"); // for IE
   p2.parse = (input:string, oldValue: Date|undefined) => 
@@ -521,7 +644,7 @@ export function CheckBox(props: InputAttributes<boolean>)
 {
   return renderInput(props, "checkbox", LabelAttrs, true, {
     checked: getValue(props),
-    onChange: (e: any) => {props.value.set(e.target.checked);}
+    onChange: (e: any) => {trySet(props, e.target.checked);}
   });
 }
 
@@ -546,9 +669,9 @@ export function Radio<T>(props: RadioAttributesWorkaround<T>)
     checked: props.is !== undefined ? getValue(props) == props.is : !!getValue(props),
     onChange: (e: any) => {
       if (e.target.checked)
-        props.value.set(props.is !== undefined ? props.is : true as any as T);
+        trySet(props, props.is !== undefined ? props.is : true as any as T);
       else if (props.is === undefined)
-        props.value.set(false as any as T);
+        trySet(props, false as any as T);
     }
   });
 }
@@ -572,7 +695,7 @@ export interface FileButtonAttributes extends ButtonAttributes {
 export function Button(p: ButtonAttributes)
 {
   var p2 = omit(p, LabelAttrs) as any;
-  return maybeWrapInLabel(p, createElement(p.type ? "input" : "button", p2, p.children), false);
+  return composeWithLabel(createElement(p.type ? "input" : "button", p2, p.children), p, false);
 }
 
 /** Wrapper for `<input type="file">`, the file selector element, that
@@ -595,17 +718,17 @@ export function Slider(p: SliderAttributes)
 {
   return renderInput(p, "range", LabelAttrs, false, {
     value: getValue(p),
-    onChange: (e: any) => { p.value.set(parseFloat(e.target.value)); }
+    onChange: (e: any) => { trySet(p, parseFloat(e.target.value)); }
   });
 }
 
-/** Creates a new object that does not have the specified properties */
+/** Creates a new object that does not have the properties that `names` has */
 // The strongly-typed version doesn't work for some reason
 //function omit<T, K extends Extract<keyof T,string>>(o: T, names: K[]): Omit<T, K> {
-function omit(o: any, names: string[]): any {
+function omit(o: any, props: object): any {
   var r: any = {};
   for (var k in o) {
-    if (names.indexOf(k) >= 0)
+    if ((props as any)[k] !== undefined)
       continue;
     r[k] = o[k];
   }

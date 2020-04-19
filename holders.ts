@@ -1,7 +1,7 @@
-/** A wrapper around a value. */
+/** A wrapper around a value. The holder is read-only if the set function is missing. */
 export type Holder<T> = {
   readonly get: T;
-  set: (newValue: T) => void;
+  set?: (newValue: T) => void;
 }
 
 /** Maps an interface to a collection of Holders. For example,
@@ -60,6 +60,11 @@ function NewValueHolderClass(delayedWrite: boolean)
     }
   }
   return ValueHolder;
+}
+
+/** Returns a trivial read-only holder: `{ get: value }` */
+export function hold<T>(value: T) {
+  return { get: value };
 }
 
 /** Creates a wrapper around a value, implementing Holder<T> and providing change 
@@ -125,8 +130,8 @@ function NewPropHolderClass<M, Props extends keyof M, This>(
 }
 
 /** A helper function that bundles a getter and setter into a Holder object.
- *  For example, `hold(model, "foo").get` returns the value of `model.foo`, 
- *  and `hold(model, "foo").set("newVal")` changes the value of `model.foo`
+ *  For example, `holdProp(model, "foo").get` returns the value of `model.foo`, 
+ *  and `holdProp(model, "foo").set("newVal")` changes the value of `model.foo`
  *  to "newVal". If a third argument `onChange` is provided, it is called 
  *  before, after, or instead of updating the model. For example, the 
  *  following code creates a reference called `foo` so that if you write 

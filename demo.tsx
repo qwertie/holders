@@ -2,13 +2,14 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
 // *** When using the npm package, import 'holders' or 'holders/elements' instead! ***
-import {holdProp, holdState, holdProps, holdAllProps, Holder, Holders,
-        TextBox, TextArea, Label, LabelSpan, InputSpan, CheckBox,
-        Radio, Button, Slider, DateTimeBox} from './elements';
+import {holdValue, holdProp, holdState, holdProps, holdAllProps, Holder, Holders,
+        TextBox, TextArea, ColorPicker, Label, LabelSpan, InputSpan, CheckBox,
+        Radio, Button, Slider, DateBox, DateTimeBox, options} from './elements';
 
 /* @jsx h */
 var h = React.createElement;
 var createElement = React.createElement; // the code hasn't changed, but now TypeScript is calling createElement
+var useState = React.useState;
 
 //////////////////////////////////////////////////////////////////////////
 // Demo 1: Form with separate model (App class connects the two together)
@@ -18,32 +19,37 @@ var createElement = React.createElement; // the code hasn't changed, but now Typ
 //       explicitly set to undefined so the function knows they exist.
 class Model {
   name: string = "";
-  age?: number = undefined;
+  birthdate?: Date = undefined; // redundancy: because it's only an example
   address: string = "";
   city: string = "";
   province: string = "";
-  country: string = "";
+  email: string = "";
   date?: Date = undefined;
   color: string = "#bbff44";
   married: boolean = false;
   haveChildren: boolean = false;
+  error: string;
 }
 
 // A simple form
 function PersonForm(m: Holders<Model>) {
   return <form>
-    <TextBox p label="Name:"     value={m.name} autoComplete="name" placeholder="First Last"/>
-    <TextBox p label="Age:"      value={m.age}  type="number"
-             parse={s => parseFloat(s) || new Error("Invalid age")}/>
-    <TextBox p label="Address:"  value={m.address}  autoComplete="address-line1"/>
-    <TextBox p label="City:"     value={m.city}     autoComplete="address-level2"/>
-    <TextBox p label="Province:" value={m.province} autoComplete="address-level1"/>
-    <TextBox p label="Country:"  value={m.country}  autoComplete="country-name"/>
+    <TextBox p label="Name:"  required value={m.name} autoComplete="name" placeholder="First Last"/>
+    <DateBox p label="Birthdate:"      value={m.birthdate} autoComplete="bday"/>
+    <TextBox p label="Address:"        value={m.address}  autoComplete="address-line1"/>
+    <TextBox p label="City:"           value={m.city}     autoComplete="address-level2" maxLength={30}/>
+    <TextBox p label="Province/state:" value={m.province} autoComplete="address-level1" maxLength={30}/>
+    <TextBox p label="Email address:"  value={m.email}  type="email" autoComplete="email"/>
     <p>
       <LabelSpan><CheckBox label="Married"  value={m.married} labelAfter={true}/></LabelSpan>
       {m.married.get ? <CheckBox label="With Children" value={m.haveChildren}/> : undefined}
     </p>
-    <TextBox p label="Favorite color:" value={m.color} type="color"/>
+    <ColorPicker p label="Favorite color:" value={m.color}
+               error={m.color.get[1] < '9' ? "That color is ugly. It needs more red!" : ""}/>
+    <Label p label={<span>Gender <b>(read-only)</b></span>}>
+      <Radio label="Male" value={{get: false}}/>{" "}
+      <Radio label="Female" value={{get: true}}/>
+    </Label>
   </form>;
 }
 
@@ -98,8 +104,8 @@ class StatefulForm extends React.Component<{}, FormState>
           <p>
             <LabelSpan label="Select fruit:"/>
             <InputSpan>
-              <Radio value={hs('fruit')} is="apple"  label="Apple "/>
-              <Radio value={hs('fruit')} is="banana" label="Banana "/>
+              <Radio value={hs('fruit')} is="apple"  label="Apple "/>{" "}
+              <Radio value={hs('fruit')} is="banana" label="Banana "/>{" "}
               <Radio value={hs('fruit')} is="cherry" label="Cherry "/>
             </InputSpan>
           </p>
