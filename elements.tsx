@@ -1,5 +1,5 @@
 import {createElement, Component, HTMLAttributes, ComponentElement, ChangeEvent} from "react";
-import {Holder} from './holders';
+import {HolderGet} from './holders';
 export * from './holders';
 
 /* @jsx h */
@@ -42,12 +42,14 @@ export interface LabelProps {
    *  property is a Holder and it has a setter, the input element will call the `.set()`
    *  function when an HTML5 validation error event occurs.
    */
-  error?: string | JSX.Element | Holder<string | JSX.Element>;
+  error?: string | JSX.Element | HolderGet<string | JSX.Element>;
   /** Whether the error property is displayed before the element itself. */
   errorFirst?: boolean;
 }
 
-/** This is the type of the global `options` variable. */
+/** This is the type of the global `options` variable.
+ *  TODO: use React Context for options instead. Pull request welcome...
+*/
 export interface FormOptions
 {
   /** Any elements in this module that have a label will use these settings when you have
@@ -105,7 +107,7 @@ export interface FormOptions
    * 
    *  If the described arrangement of elements is not what you need, it is at least possible 
    *  to globally override the way the input element, the label, and the error are combined:
-   *  override the value of `options.composeElementWithLabel`
+   *  override the value of `options.composeElementWithLabel`.
    */
   inputSpan: { class: string, style: React.CSSProperties|undefined };
   
@@ -228,7 +230,7 @@ export interface ButtonAttributes extends InputAttributesBase {
 /** Attributes that apply to all `input` elements except buttons */
 export interface InputAttributes<T> extends InputAttributesBase {
   /** Current value associated with the form element. */
-  value: Holder<T>;
+  value: HolderGet<T>;
   /** Prevents the user from modifying the value of the input. This does not change 
    *  the widget's appearance; to gray it out, set disabled instead. */
   readOnly?: boolean;
@@ -419,13 +421,13 @@ export interface FileButtonAttributes extends ButtonAttributes {
 // Helper functions
 //////////////////////////////////////////////////////////////////////////////////////////////
 // Some of these just guard against mistakes by not crashing if `value` is missing
-function getValue<T>(props: { value: Holder<T> }): T {
+function getValue<T>(props: { value: HolderGet<T> }): T {
   return typeof props.value === 'object' ? props.value.get : "(invalid)" as any as T;
 }
-function isDisabled<T>(props: { disabled?: boolean, value?: Holder<T> }): boolean {
+function isDisabled<T>(props: { disabled?: boolean, value?: HolderGet<T> }): boolean {
   return props.disabled || !(props.value && props.value.set);
 }
-function trySet<T>(props: { value: Holder<T> }, newValue: T): Error|void {
+function trySet<T>(props: { value: HolderGet<T> }, newValue: T): Error|void {
   if (props.value && props.value.set)
     try {
       props.value.set(newValue);
@@ -436,10 +438,10 @@ function trySet<T>(props: { value: Holder<T> }, newValue: T): Error|void {
 function getError(p: { error?: any }): string | JSX.Element | undefined {
   return p.error && (p.error.set || p.error.get) ? p.error.get : p.error;
 }
-function trySetError<T>(props: { error?: string | JSX.Element | Holder<string | JSX.Element> }, msg: string) {
+function trySetError<T>(props: { error?: string | JSX.Element | HolderGet<string | JSX.Element> }, msg: string) {
   let error = props.error;
   if (error && typeof (error as any).set === 'function')
-    (error as Holder<string|JSX.Element>).set!(msg);
+    (error as HolderGet<string|JSX.Element>).set!(msg);
 }
 function getEither<A, B, K extends (keyof A & keyof B)>(a: A, b: B, name: K): A[K] | B[K] {
   return a && a[name] !== undefined ? a[name] : b[name];
@@ -471,6 +473,24 @@ abstract class TextBase<T extends {}, Props extends TextAttributesBase<T>>
     inputProps.value = state.tempText != null ? state.tempText : this.asStr(getValue(props), props.stringify);
     inputProps.disabled = isDisabled(props);
 
+    this.addHandlers(inputProps);
+
+    let tag = this.chooseTag(inputProps);
+    let error = this.getVisibleError();
+    if (error)
+      inputProps.className += " user-invalid";
+    if (el)
+      el.setCustomValidity(typeof error === 'string' ? error : "");
+
+    let type = tag === 'text' ? inputProps.type : tag;
+    return composeWithLabel(createElement(tag, inputProps, props.children), type, props, error || "");
+  }
+  asStr(val: T, stringify?: (t:T) => string) {
+    if (stringify)
+      return stringify(val);
+    return val != null ? val.toString() : "";
+  }
+  addHandlers(inputProps: React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>) {
     inputProps.onBlur = () => { // lost focus
       let change: TextBaseState = { hasFocus: false, hadError: !!this.getError() };
       if (!this.keepBadText())
@@ -480,7 +500,15 @@ abstract class TextBase<T extends {}, Props extends TextAttributesBase<T>>
     inputProps.onFocus = () => {
       this.setState({ hasFocus: true });
     };
+    inputProps.ref = el => {
+      let props = this.props;
+      if ((this.inputElement = el) && (this.state.hadError || getError(props)))
+        trySetError(props, el.validationMessage);
+      if (props.refInput)
+        props.refInput(el);
+    }
     inputProps.onChange = (e: ChangeEvent<HTMLInputElement|HTMLTextAreaElement>) => {
+      let props = this.props, el = this.inputElement;
       let value = e.target.value;
       let changed = false;
       let errorMsg: string | undefined;
@@ -509,24 +537,6 @@ abstract class TextBase<T extends {}, Props extends TextAttributesBase<T>>
         errorMsg = el!.validationMessage;
       trySetError(props, errorMsg || "");
     };
-    inputProps.ref = el => {
-      if ((this.inputElement = el) && (this.state.hadError || getError(props)))
-        trySetError(props, el.validationMessage);
-      if (this.props.refInput)
-        this.props.refInput(el);
-    }
-
-    let tag = this.chooseTag(inputProps);
-    let error = this.getVisibleError();
-    if (el)
-      el.setCustomValidity(typeof error === 'string' ? error : "");
-    let type = tag === 'text' ? inputProps.type : tag;
-    return composeWithLabel(createElement(tag, inputProps, props.children), type, props, error || "");
-  }
-  asStr(val: T, stringify?: (t:T) => string) {
-    if (stringify)
-      return stringify(val);
-    return val != null ? val.toString() : "";
   }
   getError() {
     /* Sources of truth for error message:

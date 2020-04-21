@@ -1,5 +1,11 @@
-/** A wrapper around a value. The holder is read-only if the set function is missing. */
+/** A wrapper around a value. */
 export type Holder<T> = {
+  readonly get: T;
+  set: (newValue: T) => void;
+}
+
+/** A wrapper around a value. It's like Holder<T>, but read-only if the set function is missing. */
+export type HolderGet<T> = {
   readonly get: T;
   set?: (newValue: T) => void;
 }

@@ -1,5 +1,5 @@
-Holders
--------
+Holders: speak easy to your components
+--------------------------------------
 
 React tutorials for beginners teach you to separately send state to child components, and then receive new state back from those child components through an `onChange` handler. For instance if you've written a `Slider` component to edit a numeric value, you might use it like this:
 
@@ -20,7 +20,7 @@ The *holders* library removes both of these annoyances by bundling the "getter" 
 
 Plus, you don't have to write a `Slider` component - this library already includes it.
 
-The getter/setter bundle is called `Holder<T>`
+The getter/setter bundle is called `Holder<T>`:
 
     /** A wrapper around a value. */
     export type Holder<T> = {
@@ -29,16 +29,14 @@ The getter/setter bundle is called `Holder<T>`
     }
 
 
-If `cacheSize` is a `Holder<number>` object, `cacheSize.get` returns the current value and `cacheSize.set(v)` is called to update `cacheSize` with a new value. You can either use one of the three kinds of holders in this library
-
-Although this package was written in TypeScript, it is published as JavaScript code so it can be used equally well from JavaScript and TypeScript projects. 
+If `cacheSize` is a `Holder<number>` object, `cacheSize.get` returns the current value and `cacheSize.set(v)` is called to update `cacheSize` with a new value. This package includes three kinds of holders, and you add your own as necessary.
 
 This library consists of two very small parts:
 
 1. ['holders'](https://github.com/qwertie/holders/blob/master/holders.ts) is the basic code for creating holder objects, including the `holdValue`, `holdStates`, `holdProps`, and `holdAllProps` functions. This tiny module does not use or need React or JSX.
 2. ['elements'](https://github.com/qwertie/holders/blob/master/elements.tsx) provides small React components named `Label`, `TextBox`, `CheckBox`, `DateBox`, etc., which wrap standard forms elements like `<label>`, `<input type="text">`, and `<input type="checkbox">`. Each element can have a label and all standard HTML attributes are supported on each form element. Validation is supported (see below).
 
-It also includes an example (demo.html, demo.tsx, demo.css).
+It also includes an example (demo.html, demo.tsx, demo.css). It was written in TypeScript, but is published as JavaScript code so it can be used equally well from JavaScript and TypeScript projects. 
 
 To install it in your npm project, run this terminal command: `npm i holders`
 
@@ -73,7 +71,7 @@ function PersonForm(m: Holders<Model>) {
   let age = asAge(m.birthdate);
   return <form>
     <TextBox p label="Name:"  required value={m.name} autoComplete="name" placeholder="First Last"/>
-    <TextBox p label="Age:"            value={asAge(m.birthdate)}  type="number"
+    <TextBox p label="Age:"            value={age}    type="number"
              parse={text => (age.set(parseFloat(text)), age.get)}/>
     <DateBox p label="Birthdate:"      value={m.birthdate} autoComplete="bday"/>
     <TextBox p label="Address:"        value={m.address}  autoComplete="address-line1"/>

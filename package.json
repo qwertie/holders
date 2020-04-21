@@ -1,6 +1,6 @@
 {
   "name": "holders",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "A tiny library to help you construct React user interfaces quickly & easily",
   "main": "elements",
   "typings": "elements",

@@ -5,6 +5,7 @@ body {
   font-family: "Helvetica", sans-serif;
   margin: 0;
   padding: 0.5%;
+  background: #bdf;
 }
 .main {
   margin-right: auto;
@@ -12,6 +13,7 @@ body {
   max-width: 600px;
   border: 1px solid #ccf;
   padding: 1em;
+  background: #f8f8f8;
 }
 a       { text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -75,12 +77,10 @@ textarea, input[type="text"], input[type="email"] {
 
 /* Skinning of controls (input/textarea/button) ****************************************/
 
-input[type="text"]:invalid, input[type="number"]:invalid, input[type="email"]:invalid, textarea:invalid {
-  border: 1px solid #C88;
-}
 /* :user-invalid has been proposed for fields that become invalid AFTER user interaction, 
-   but the only real-life implementation of this is FireFox's :-moz-ui-invalid (2020/04) */
-input[type="text"]:-moz-ui-invalid, input[type="number"]:-moz-ui-invalid, input[type="email"]:-moz-ui-invalid, textarea:-moz-ui-invalid {
+   but the only real-life implementation of this is FireFox's :-moz-ui-invalid (2020/04).
+   Therefore, this library uses the user-invalid class to simulate this. */
+input[type="text"].user-invalid, input[type="number"].user-invalid, input[type="email"].user-invalid, textarea.user-invalid {
   border: 1px solid red;
 }
 input[type="text"], input[type="range"] {

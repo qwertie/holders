@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
 // *** When using the npm package, import 'holders' or 'holders/elements' instead! ***
-import {holdValue, holdProp, holdState, holdProps, holdAllProps, Holder, Holders,
+import {holdValue, holdState, holdProp, holdProps, holdAllProps, Holder, Holders,
         TextBox, TextArea, ColorPicker, Label, LabelSpan, InputSpan, CheckBox,
         Radio, Button, Slider, DateBox, DateTimeBox, options} from './elements';
 
@@ -38,7 +38,7 @@ function PersonForm(m: Holders<Model>) {
   let age = asAge(m.birthdate);
   return <form>
     <TextBox p label="Name:"  required value={m.name} autoComplete="name" placeholder="First Last"/>
-    <TextBox p label="Age:"            value={asAge(m.birthdate)}  type="number"
+    <TextBox p label="Age:"            value={age}    type="number"
              parse={text => (age.set(parseFloat(text)), age.get)}/>
     <DateBox p label="Birthdate:"      value={m.birthdate} autoComplete="bday"/>
     <TextBox p label="Address:"        value={m.address}  autoComplete="address-line1"/>
