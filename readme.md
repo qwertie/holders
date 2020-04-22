@@ -92,7 +92,7 @@ function PersonForm(m: Holders<Model>) {
 }
 ~~~
 
-This form was clearly designed by an idiot, since there is _both_ an "Age" _and_ a "Birthdate" field. In order to convert ages to dates (and vice versa) we're going to need an adapter. That will require another 19 lines of code:
+This form was clearly designed by an idiot, since there is _both_ an "Age" _and_ a "Birthdate" field. In order to convert ages to dates (and vice versa) we're going to need an adapter. That will require another 18 lines of code:
 
 ~~~ts
 function asAge(date: Holder<Date|undefined>): Holder<number> {
@@ -103,7 +103,6 @@ function asAge(date: Holder<Date|undefined>): Holder<number> {
         return Math.floor((new Date() as any - (date.get as any)) / msPerYear);
     },
     set(value: number) {
-      console.log(value);
       if (!(value === value) || value < 0 || value > 200)
         throw new Error("Invalid age");
       let changeInYears = (age.get || 0) - value;

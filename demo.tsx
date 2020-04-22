@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
-// *** When using the npm package, import 'holders' or 'holders/elements' instead! ***
-import {holdValue, holdState, holdProp, holdProps, holdAllProps, Holder, Holders,
-        TextBox, TextArea, ColorPicker, Label, LabelSpan, InputSpan, CheckBox,
-        Radio, Button, Slider, DateBox, DateTimeBox, options} from './elements';
+// *** When using the npm package, import 'holders', 'holders/holders', or 'holders/basic-forms' instead! ***
+import {holdValue, holdState, holdProp, holdProps, holdAllProps, Holder, Holders} from './holders';
+import {TextBox, TextArea, ColorPicker, Label, LabelSpan, InputSpan, CheckBox,
+        Radio, Button, Slider, DateBox, DateTimeBox, options} from './basic-forms';
 
 /* @jsx h */
 var h = React.createElement;
@@ -22,7 +22,7 @@ options.errorSpan.emitEmptyForText = true;
 class Model {
   name: string = "";
   birthdate?: Date = undefined; // redundancy: because it's only an example
-  address: string = "";
+  address: string = "742 Evergreen Terrace";
   city: string = "";
   province: string = "";
   email: string = "";
