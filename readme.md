@@ -139,8 +139,8 @@ Form elements: design goals
 - Be well-documented
 - Be minimal but complete. All advanced functionality (e.g. Date input, autocomplete, 
   validation) is offloaded to the browser as much as possible, and styling is left up to 
-  CSS (see demo.css for example styling). The browser validation API was designed very 
-  badly, though, so this library augments the built-in support.
+  CSS (see demo.css for example styling). The standard browser validation API was designed 
+  very badly, though, so this library augments the built-in support.
 
 Validation support
 ------------------
@@ -152,7 +152,7 @@ Your app can provide validation errors in four different ways:
 3. You can set the `error` prop to display a message or a JSX element
 4. You can set HTML5 validation attributes such as `required` or `pattern`, or use a `type` that has built-in validation behavior provided by the browser (e.g. `<TextBox type="email">`)
 
-If the Holder Forms component is text-based (TextBox or TextArea), it will notify the element that it is invalid using the `setCustomValidity` API, and then you can style it with a selector like `input[type="text"]:invalid`.
+If the Holder Forms component is text-based (TextBox or TextArea), it will notify the element that it is invalid using the `setCustomValidity` API, and then you can style it with a selector like `input[type="text"]:invalid` or `.user-invalid`. The `user-invalid` class will appear on elements that have a validation error after the user has interacted with them. Typically it is applied when the element loses focus (see the documentation of `showErrorEarly` in `TextAttributesBase` for exceptions to this rule).
 
 Since validation support sucks ass in most browsers, the component produces extra HTML for validation errors. For example, consider this humble component:
 
@@ -167,7 +167,7 @@ It is marked as `required`, so if you tab out of the component without filling i
   <label>
     <span class="labelspan">Name:</span>
     <span class="inputspan">
-      <input required="" autocomplete="name" placeholder="First Last" type="text" value="">
+      <input required="" autocomplete="name" placeholder="First Last" type="text" value="" class="user-invalid">
       <span class="errorspan">Please fill out this field.</span>
     </span>
   </label>
