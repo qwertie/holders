@@ -6,7 +6,7 @@ React tutorials for beginners teach you to separately send state to child compon
 ~~~jsx
     <Slider value={this.props.cacheSize} 
             onChange={value => this.props.onCacheSizeChanged(value)} 
-            min={-10} max={10} step={1} style={ {width:"12em"} }/>
+            min={1} max={20} step={1} style={ {width:"12em"} }/>
 ~~~
 
 And then, whatever code creates _your_ component has to do the same thing again, sending in its own value for `onCacheSizeChanged`.
@@ -15,7 +15,7 @@ The *holders* library removes both of these annoyances by bundling the "getter" 
 
 ~~~jsx
     <Slider value={this.props.cacheSize} 
-            min={-10} max={10} step={1} style={ {width:"12em"} }/>
+            min={1} max={20} step={1} style={ {width:"12em"} }/>
 ~~~
 
 Plus, you don't have to write a `Slider` component - this library already includes it.
@@ -34,7 +34,7 @@ If `cacheSize` is a `Holder<number>` object, `cacheSize.get` returns the current
 This library consists of two very small parts:
 
 1. ['holders'](https://github.com/qwertie/holders/blob/master/holders.ts) is the basic code for creating holder objects, including the `holdValue`, `holdStates`, `holdProps`, and `holdAllProps` functions. This tiny module does not use or need React or JSX.
-2. ['elements'](https://github.com/qwertie/holders/blob/master/elements.tsx) provides small React components named `Label`, `TextBox`, `CheckBox`, `DateBox`, etc., which wrap standard forms elements like `<label>`, `<input type="text">`, and `<input type="checkbox">`. Each element can have a label and all standard HTML attributes are supported on each form element. Validation is supported (see below).
+2. ['basic-forms'](https://github.com/qwertie/holders/blob/master/basic-forms.tsx) provides small React components named `Label`, `TextBox`, `CheckBox`, `DateBox`, etc., which wrap standard forms elements like `<label>`, `<input type="text">`, and `<input type="checkbox">`. Each element can have a label and all standard HTML attributes are supported on each form element. Validation is supported (see below).
 
 It also includes an example (demo.html, demo.tsx, demo.css). It was written in TypeScript, but is published as JavaScript code so it can be used equally well from JavaScript and TypeScript projects. 
 
@@ -195,7 +195,7 @@ Features
 --------
 
 - UMD modules targeting ES5 (old browsers supported)
-- Minified size: 2.2K for holders.min.js, 8.1K for elements.min.js
+- Minified size: 2.2K for holders.min.js, 8.2K for basic-forms.min.js
 - Includes d.ts files (written in TypeScript)
 - Elements are expected to be compatible with Preact as well as React
 
