@@ -477,7 +477,7 @@ abstract class TextBase<T extends {}, Props extends TextAttributesBase<T>>
     let tag = this.chooseTag(inputProps);
     let error = this.getVisibleError();
     if (error)
-      inputProps.className += " user-invalid";
+      inputProps.className = (inputProps.className ? inputProps.className + " " : "") + "user-invalid";
     if (el)
       el.setCustomValidity(typeof error === 'string' ? error : "");
 
