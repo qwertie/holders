@@ -179,7 +179,7 @@ These elements can then be styled, as demoed in the demo. If you need `TextBox` 
 Documentation
 -------------
 
-Full doc comments are provided in the source code for ['holders/elements'](https://github.com/qwertie/holders/blob/master/elements.tsx) and ['holders/holders'](https://github.com/qwertie/holders/blob/master/holders.ts).
+Full doc comments are provided in the source code for ['holders/holders'](https://github.com/qwertie/holders/blob/master/holders.ts) and ['holders/basic-forms'](https://github.com/qwertie/holders/blob/master/basic-forms.tsx).
 
 To run the demo
 ---------------
