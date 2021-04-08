@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
 // *** When using the npm package, import 'holders', 'holders/holders', or 'holders/basic-forms' instead! ***
-import {holdValue, holdState, holdProp, holdProps, holdAllProps, Holder, Holders} from './holders';
+import {holdValue, holdStates, holdProp, holdProps, holdAllProps, Holder, Holders} from './holders';
 import {TextBox, TextArea, ColorPicker, Label, LabelSpan, InputSpan, CheckBox,
         Radio, Button, Slider, DateBox, DateTimeBox, options} from './basic-forms';
 
@@ -106,19 +106,19 @@ class StatefulForm extends React.Component<{}, FormState>
     };
   }
   render() {
-    var hs = holdState(this), date = hs('date');
+    var s = holdStates(this, ['checkbox1', 'checkbox2', 'happiness', 'fruit', 'ready', 'code', 'date']);
     return (<form>
       <fieldset>
         <legend>Additional input fields:</legend>
-        <CheckBox value={hs('checkbox1')} label="I am prepared to see various form elements"/>
+        <CheckBox value={s.checkbox1} label="I am prepared to see various form elements"/>
         { !this.state.checkbox1 ? undefined : <div>
-          <DateTimeBox p label="Date/time (UTC):" value={date} utc={true}/>
-          <DateTimeBox p label="Date/time (local):" value={date}/>
-          <CheckBox p value={hs('checkbox2')} label="Checkbox:" labelAfter={false} />
+          <DateTimeBox p label="Date/time (UTC):" value={s.date} utc={true}/>
+          <DateTimeBox p label="Date/time (local):" value={s.date}/>
+          <CheckBox p value={s.checkbox2} label="Checkbox:" labelAfter={false} />
           <Label p label="Happiness level:">
-            <Slider value={hs('happiness')} min={-10} max={10} step={1}
+            <Slider value={s.happiness} min={-10} max={10} step={1}
                     list="ticks" style={ {width:"12em"} }/>
-            <TextBox type="number" value={hs('happiness')} style={ {minWidth:"4em", width:"4em"} }
+            <TextBox type="number" value={s.happiness} style={ {minWidth:"4em", width:"4em"} }
                      parse={s => parseInt(s)}/>
             <datalist id="ticks">
               <option value="-10"/><option value="-5"/>
@@ -129,20 +129,20 @@ class StatefulForm extends React.Component<{}, FormState>
           <p>
             <LabelSpan label="Select fruit:"/>
             <InputSpan>
-              <Radio value={hs('fruit')} is="apple"  label="Apple "/>{" "}
-              <Radio value={hs('fruit')} is="banana" label="Banana "/>{" "}
-              <Radio value={hs('fruit')} is="cherry" label="Cherry "/>
+              <Radio value={s.fruit} is="apple"  label="Apple "/>{" "}
+              <Radio value={s.fruit} is="banana" label="Banana "/>{" "}
+              <Radio value={s.fruit} is="cherry" label="Cherry "/>
             </InputSpan>
           </p>
-          <TextBox p label="Selected fruit:" value={hs("fruit")}/>
+          <TextBox p label="Selected fruit:" value={s.fruit}/>
           <p>
-            <Label label={<CheckBox label="Ready to order" value={hs("ready")}/>}>
+            <Label label={<CheckBox label="Ready to order" value={s.ready}/>}>
               <Button onClick={e => this.deliverClicked(e)} style={{maxWidth:200}}>Deliver fruit</Button>
             </Label>
           </p>
           <p>
             <LabelSpan><a href="http://loyc.net/les">LES</a> <a href="http://loyc.net/2017/lesv3-update.html">v3</a> code<br/></LabelSpan>
-            <TextArea<string> value={hs('code')} cols={50} rows={5}/>
+            <TextArea<string> value={s.code} cols={50} rows={5}/>
           </p>
         </div>}
       </fieldset>
@@ -182,7 +182,14 @@ class App extends React.Component<{model:Model}, Holders<Model> & {model:Holder<
       <TextArea label="JSON version (editable)"
                 value={this.state.model} rows={11} cols={40}
                 stringify={m => JSON.stringify(m,undefined,"  ")} 
-                parse={ (input, oldVal) => ({...oldVal, ...JSON.parse(input)}) }/>
+                parse={(input, oldVal) => {
+                  const parsed: Model = JSON.parse(input);
+                  if (parsed.birthdate)
+                    parsed.birthdate = new Date(parsed.birthdate);
+                  if (parsed.date)
+                    parsed.date = new Date(parsed.date);
+                  return {...oldVal, ...parsed };
+                }}/>
       <StatefulForm/>
     </div>;
   }

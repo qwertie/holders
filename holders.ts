@@ -4,7 +4,8 @@ export type Holder<T> = {
   set: (newValue: T) => void;
 }
 
-/** A wrapper around a value. It's like Holder<T>, but read-only if the set function is missing. */
+/** A wrapper around a value. It's like Holder<T> except that the `set` function is 
+ *  optional. If there's no `set` function, the holder is read-only. */
 export type HolderGet<T> = {
   readonly get: T;
   set?: (newValue: T) => void;
@@ -174,33 +175,19 @@ export function holdProp<M, Attr extends keyof M, This>(model: M, attr: Attr,
   return new (NewPropHolderClass(model, onChanging, delayedWrite, onChangingThis || model as any))(attr);
 }
 
-/**
- * Deprecated (use holdStates instead). This is a helper function for using 
- * `hold()` for a component's state in React. If you write 
+type SetStateAction<S> = S | ((prevState: S) => S);
+
+
+/** holdState(useState(...)) converts a React state hook output to Holder<T>.
  * 
- *     var hstate = holdState(this);
- *     var foo = hstate("foo");
- *     var bar = hstate("bar");
+ *  Example: const date = holdState(useState<Date>(new Date()));
  * 
- * it is equivalent to
- * 
- *     var onChange = (newVal:any, oldVal:any, attr:any) => {
- *       this.setState({ [attr]: newVal });
- *       return this.state[attr]; // tell the holder not to change state[attr]
- *     };
- *     var foo = hold(this.state, "foo", onChange, true);
- *     var bar = hold(this.state, "bar", onChange, true);
+ *  Note: the state type T itself must not be a function type.
  */
-export function holdState<This extends {state: State, setState: (s:any/*Readonly<Partial<State>>*/)=>any}, State=This["state"]>
-  (component: This): <Attr extends keyof State>(attr: Attr) => Holder<State[Attr]>
-{
-  return function<Attr extends keyof State>(attr: Attr) {
-    return holdProp(component.state, attr, (newValue: State[Attr], old: State[Attr], a: Attr) => {
-      component.setState({ [a]: newValue });
-      return component.state[a];
-    }, true);
-  };
+export function holdState<T>([value, setValue]: [T, (val: SetStateAction<T>) => void]): Holder<T> {
+  return { get: value, set: setValue };
 }
+
 
 interface Component<State> {
   state: State;

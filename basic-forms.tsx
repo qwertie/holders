@@ -851,7 +851,7 @@ function omit(o: any, props: object): any {
   return r;
 }
 
-/** Assigns all "own" properties from `obj` to `target`. */
+/** Assigns all non-inherited properties from `obj` to `target`. */
 var assign = (Object as any).assign || (
   (target: any, obj: any) => {
     for (var k in obj)

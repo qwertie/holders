@@ -184,20 +184,90 @@ Full doc comments are provided in the source code for ['holders/elements'](https
 To run the demo
 ---------------
 
-Due to [bug #1904](https://github.com/parcel-bundler/parcel/issues/1904) in parcel-bundler, Parcel versions above 1.6.2 don't work.
-
-    npm install --global parcel-bundler@1.6.2
+    npm install --global parcel
     npm run demo
     
-Then visit http://localhost:1234 in browser.
+When it succeeds, visit http://localhost:1234 in a browser.
 
 Features
 --------
 
-- UMD modules targeting ES5 (old browsers supported)
-- Minified size: 2.2K for holders.min.js, 8.2K for basic-forms.min.js
-- Includes d.ts files (written in TypeScript)
+- CommonJS modules targeting ES5 (old browsers supported)
+- Minified size: 2.3K for holders.min.js, 9.3K for basic-forms.min.js
+- Includes d.ts files (this package is written in TypeScript)
 - Elements are expected to be compatible with Preact as well as React
+
+Version history
+---------------
+
+### v4.0.0 ###
+
+- Remove deprecated `holdState` function
+- Add new `holdState` helper function. `holdState(useState(...))` converts a React
+  state tuple to `Holder<T>`.
+- Switch module format from "umd" to "CommonJS". This improves compatibility with
+  webpack and parcel, but reduces compatibility with the less popular AMD module system.
+
+### v3.1.3 ###
+
+- Bug fix: Avoid accidentally adding class called `undefined` to invalid input elements
+
+### v3.1.1 ###
+
+- define `HolderGet<T>` (a holder with optional setter).
+  Form elements will recognize a holder without a setter as read-only.
+- Rename `elements` module to `basic-forms` (`elements` still exists and exports both `basic-forms` and `holders`)
+- `holders/basic-forms` module:
+  - Enhance the hell out of the validation support
+    - Add props `keepBadText`, `showErrorEarly`, `noErrorSpan`
+    - `TextBox` is designed to hide the validation error message until it gains and loses focus
+  - Export `options` object with new `FormOptions` type
+  - Wrap most input elements in `<span class="inputspan">` to make css styling easier.
+    The `inputspan` wraps both the `<input>` element and the `<span class="errorspan">`
+    element which displays validation errors. The `inputspan` span can be suppressed
+    with the `noInputSpan` prop.
+  - Add `ColorPicker` component (alternative to `<TextBox type="color">`)
+  - Add `DateTimeBox` component
+  - Add `InputSpan` component
+  - Add `ErrorSpan` component, plus new props on other form elements to support  
+    displaying errors: `LabelProps.error`, `LabelProps.errorFirst`
+  - Add `options.composeElementWithLabel` function that allows you to control how basic 
+    form elements (such as `<input type="text">`) are combined with a label and error 
+    string. The default composer function is called `defaultComposer`.
+  - Add `refInput` in `InputAttributesBase` for advanced customization
+  - When your `parse` prop is called, `this` now refers to the `TextBox` or `TextArea` 
+    that the user is changing
+
+### v3.0.0 ###
+
+There are almost no users, so some breaking changes should be okay...
+
+TypeScript version is 3.6.5 to avoid breaking clients that use TypeScript 3.5 or earlier.
+
+- Change signature of all `onChanging` handlers. The new signature is
+  the same for value holders and prop holders; the attribute name is
+  the third parameter rather than the first.
+- Rename `hold()` to `holdProp()`
+- `holdProps` and `holdStates` are now optimized to lower memory use of
+  groups of holders, but `holdProp` and `holdState` use more memory than
+  before (assumption: people usually make multiple holders at once.)
+- Add `holdStates()` which uses new code specialized for the React state
+  holders it creates. This package still does not require React.
+- Add `delayedWrite` parameter to all holders. The old behavior was as
+  if `delayedWrite` was always true, but now the default value of
+  `delayedWrite` is false.
+- Elements no longer throw _initially_ if `value` prop is missing
+- Add `RadioAttributesWorkaround<T>`. This is used as a workaround for
+  the mysterious difficulty TypeScript has handling
+  `RadioAttributes<string>`. You see, `<Radio value={h} is="X"/>` works
+  fine if `h` is a `Holder<"X"|"Y">`, but if `h` is `Holder<string>`, it
+  says without further explanation that the props of Radio are
+  "not assignable" to it. The workaround is to mark `is` optional, even
+  though it is required when T is not boolean.
+- Bug fix: in FireFox the user can change an <input type="number">
+  without giving it focus, which could cause it to fail to be updated
+  when `value.get` is changed.
+- Improve css styling of the demo
 
 To Learn More
 -------------
